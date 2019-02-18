@@ -1,0 +1,42 @@
+{
+  "name": "jquery-query-builder-util",
+  "version": "0.0.1",
+  "authors": [
+    {
+      "name": "Davide Graziosi",
+      "email": "davide.graziosi@exprivia.com",
+      "homepage": "https://git.expriviatelcomedia.it/INPAS/jquery-query-builder-util"
+    }
+  ],
+  "description": "jQuery QueryBuilder utility package",
+  "main": [
+    "dist/js/query-builder-util.js"
+  ],
+  "dependencies": {
+    "jquery": ">=1.10.0",
+    "bootstrap": ">=3.1.0 <4",
+    "moment": ">=2.6.0",
+    "jquery-extendext": ">=0.1.2",
+    "doT": ">=1.0.3",
+    "jQuery-QueryBuilder-sql-ext": ">=2.5.2"
+  },
+  "keywords": [
+    "jquery",
+    "query",
+    "builder",
+    "filter"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "build",
+    "src",
+    "tests",
+    "composer.json",
+    "package.json",
+    "Gruntfile.js",
+    "CONTRIBUTING.md"
+  ]
+}
