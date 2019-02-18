@@ -1,6 +1,6 @@
 {
   "name": "jquery-query-builder-util",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "authors": [
     {
       "name": "Davide Graziosi",
@@ -9,15 +9,17 @@
     },
     {
       "name": "Luigi Parlati",
-      "email": "luigi.parlati@exprivia.com",
-      "homepage": "https://git.expriviatelcomedia.it/INPAS/jquery-query-builder-util"
+      "email": "luigi.parlati@exprivia.com"
     }
   ],
   "description": "jQuery QueryBuilder utility package",
   "main": [
-    "dist/js/query-builder-util.js",
-    "dist/js/query-builder.it.js"
+    "dist/js/query-builder-util.js"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://git.expriviatelcomedia.it/INPAS/jquery-query-builder-util.git"
+  },
   "dependencies": {
     "jquery": ">=1.10.0",
     "bootstrap": ">=3.1.0 <4",
@@ -25,6 +27,9 @@
     "jquery-extendext": ">=0.1.2",
     "doT": ">=1.0.3",
     "jQuery-QueryBuilder-sql-ext": ">=2.5.2"
+  },
+  "resolutions": {
+    "jQuery-QueryBuilder-sql-ext": "2.5.2.7"
   },
   "keywords": [
     "jquery",
