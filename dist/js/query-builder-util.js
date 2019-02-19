@@ -135,7 +135,7 @@
 				toggle: { visible: true },
 			},
 			globalConfig: function (options) {
-				this.defaultOptions = angular.extend(this.defaultOptions, options);
+				this.defaultOptions = angular.merge(this.defaultOptions, options);
 			}
 		};
 
@@ -251,7 +251,7 @@
 					namedGroups: false
 				}
 			};
-			var localOptions = angular.extend({}, this.defaultOptions, options);
+			var localOptions = angular.merge({}, this.defaultOptions, options);
 			if (localOptions.sortable) {
 				plugins.sortable = localOptions.sortable;
 			}

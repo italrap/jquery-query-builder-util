@@ -1,6 +1,6 @@
 {
   "name": "jquery-query-builder-util",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "authors": [
     {
       "name": "Davide Graziosi",
@@ -26,7 +26,7 @@
     "moment": ">=2.6.0",
     "jquery-extendext": ">=0.1.2",
     "doT": ">=1.0.3",
-    "jQuery-QueryBuilder-sql-ext": ">=2.5.2"
+    "jQuery-QueryBuilder-sql-ext": ">=2.5.2.6"
   },
   "resolutions": {
     "jQuery-QueryBuilder-sql-ext": "2.5.2.7"
