@@ -1,8 +1,8 @@
-(function(window, angular) {
+(function (window, angular) {
 	'use strict';
-    angular
-        .module('QueryBuilderUtility',[])
-        .service('queryBuilderUtility', ['$translate',queryBuilderUtility]);
+	angular
+		.module('QueryBuilderUtility', [])
+		.service('queryBuilderUtility', ['$translate', queryBuilderUtility]);
 
 	function queryBuilderUtility($translate) {
 
@@ -130,6 +130,13 @@
 			getQueryBuilderOperators: getQueryBuilderOperators,
 			getSqlOperators: getSqlOperators,
 			createQueryBuilder: createQueryBuilder,
+			defaultOptions: {
+				labels: { visible: true, readonly: true },
+				toggle: { visible: true },
+			},
+			globalConfig: function (options) {
+				this.defaultOptions = angular.extend(this.defaultOptions, options);
+			}
 		};
 
 		init();
@@ -225,7 +232,7 @@
 		 */
 		function createQueryBuilder(element, filters, options, lang_code) {
 			var defaultFilter = { "id": "1", "field": "1", "type": "integer", "label": "-----", "input": "number", "unique": true };
-			filters.push(defaultFilter);
+			// filters.push(defaultFilter);
 
 			if (!lang_code) {
 				lang_code = $translate.use();
@@ -244,14 +251,9 @@
 					namedGroups: false
 				}
 			};
-			if (options && options.sortable) {
-				plugins.sortable = options.sortable;
-			}
-			if (!options) {
-				optons = {};
-			}
-			if (!options.labels) {
-				options.labels = {}
+			var localOptions = angular.extend({}, this.defaultOptions, options);
+			if (localOptions.sortable) {
+				plugins.sortable = localOptions.sortable;
 			}
 
 			$(element).queryBuilder({
@@ -268,7 +270,7 @@
 				return (el.value.length == 0 ? "16px;" : (el.value.length + 1) * 8) + "px";
 			}
 
-			
+
 			//$($(element).find('.rules-group-container').find('button').get(2)).hide();
 			/*$(element).prepend('<script >function autowidth(el) {return ((el.value.length + 1)*8)+"px";} ' +
 						'$(function () {$(".toggleswitch").bootstrapToggle({size: "mini"});});</script>');*/
@@ -277,9 +279,9 @@
 			// );
 
 			//Nascondo errori validazione per regole non abilitate
-			$(element).on('validateValue.queryBuilder.filter', function(event, value, rule) {
-				if(event.value!=true){
-					if(rule.data && rule.data.enabled==false){
+			$(element).on('validateValue.queryBuilder.filter', function (event, value, rule) {
+				if (event.value != true) {
+					if (rule.data && rule.data.enabled == false) {
 						event.value = true;
 					}
 				}
@@ -299,39 +301,40 @@
 
 			$(element).on('afterAddGroup.queryBuilder', function (event, group) {
 				if (group.id != group.model.root.id) {
-					var label = $('#' + group.id + '_data');
-					if (label.length == 0) {
-						addGroupLabel(event, group);
-					}
-					else {
-						$(label[0]).val('');
+					if (localOptions.labels.visible === true) {
+						var label = $('#' + group.id + '_data');
+						if (label.length == 0) {
+							addGroupLabel(event, group);
+						}
+						else {
+							$(label[0]).val('');
+						}
 					}
 					addGroupToggle(event, group);
 				}
 			});
 
-
 			/*Marisa*/
 			$(element).on('afterCreateRuleFilters.queryBuilder', function (event, rule) {
-
-				var a = rule.id + "_filter"
-
+				var a = rule.id + "_filter";
 				var b = $(event.target).find("[name='" + a + "']");
 				b.focus();
 			});
 
 			$(element).on('afterCreateRuleInput.queryBuilder', function (event, rule) {
 				addRuleToggle(event, rule);
-				var label = $('#' + rule.id + '_data');
-				if (label.length == 0) {
-					addRuleLabel(event, rule);
-				}
-				else {
-					var labelVal = (rule.filter.label ? rule.filter.label : '');
-					console.log(labelVal);
-					$(label[0]).val(labelVal);
-					if (!rule.data) rule.data = {};
-					rule.data['label'] = labelVal;
+				if (localOptions.labels.visible === true) {
+					var label = $('#' + rule.id + '_data');
+					if (label.length == 0) {
+						addRuleLabel(event, rule);
+					}
+					else {
+						var labelVal = (rule.filter.label ? rule.filter.label : '');
+						console.log(labelVal);
+						$(label[0]).val(labelVal);
+						if (!rule.data) rule.data = {};
+						rule.data['label'] = labelVal;
+					}
 				}
 
 
@@ -351,6 +354,8 @@
 			});
 
 			function addGroupToggle(event, group) {
+				if (localOptions.toggle.visible !== true)
+					return;
 				var enabled = false;
 				if (group.data) {
 					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : false);
@@ -448,7 +453,7 @@
 					id: group.id + '_data',
 					name: group.id + '_data',
 					value: (label != undefined ? label : ''),
-					readOnly: options.labels.readonly == true,
+					readOnly: localOptions.labels.readonly == true,
 				});
 				labelObj.append(input);
 				container.after(labelObj);
@@ -468,6 +473,8 @@
 			}
 
 			function addRuleToggle(event, rule) {
+				if (localOptions.toggle.visible !== true)
+					return;
 				var container = $(rule.$el).find(".rule-filter-container");
 				var toggle = container.find('.toggleswitch');
 				if (!toggle || !toggle.length) {
@@ -547,7 +554,7 @@
 					id: rule.id + '_data',
 					name: rule.id + '_data',
 					value: (label != undefined ? label : ''),
-					readOnly: options.labels.readonly == true,
+					readOnly: localOptions.labels.readonly == true,
 				});
 				labelObj.append(input);
 				container.prepend(labelObj);
@@ -779,21 +786,22 @@
 
 			var filters = [];
 			for (var key in items) {
-
-				var type = items[key].type || items[key].TYPE;
-				var label = items[key].label || items[key].name;
-				var id = items[key].nameOrAsName || items[key].name;
+				var filterDef = items[key];
+				var type = filterDef.type || filterDef.TYPE;
+				var label = filterDef.label || filterDef.name;
+				var id = filterDef.nameOrAsName || filterDef.name || key;
+				var field = filterDef.field || id;
 				var lc = (type == "list" ? { lowercase: '1' } : {});
 
 				if (type === "term" || type == "list") { type = "string"; }
 
 				if (type === "number") { type = "integer"; }
 
-				var filter = { id: id, type: type, label: label, data: lc };
-				var mapping = items[key].MAPPING_LIST || items[key].MAPPING_ENUM || "";
+				var filter = { id: id, field: field, type: type, label: label, data: lc };
+				var mapping = filterDef.MAPPING_LIST || filterDef.MAPPING_ENUM || "";
 				//if (key == 'SOURCE') mapping =  [ "BB", "TX", "CX", "MOB", "RDG"];
 				//if (key == 'SEVERITY') mapping =  { "CLEAR" :  0, "INFO" : 1,"WARNING" : 2,"MINOR" : 3,"MAJOR" : 4 ,"CRITICAL" : 5 };
-				if (mapping || id in decodes) {
+				if (mapping || id in decodes || filterDef.REVERSE_LIST) {
 					//alert ("Decode "+key+" Type "+type);
 					var valueGetter = function (rule) {
 						var el = rule.$el.find('.rule-value-container select[name$=_0]');
@@ -811,7 +819,6 @@
 						var el = rule.$el.find('.rule-value-container select[name$=_0]');
 						if (rule.operator.type == 'in' || rule.operator.type == 'not_in') {
 							el.attr('multiple', 'multiple');
-							el.addClass("multipleSelector");
 						} else {
 							el.removeAttr('multiple');
 						}
@@ -820,89 +827,15 @@
 					filter['input'] = "select";
 					filter['valueGetter'] = valueGetter;
 					filter['valueSetter'] = valueSetter;
-					filter['operators'] = ['equal', 'not_equal', 'in', 'not_in', 'is_null', 'is_not_null'];
-					filter['values'] = getDecodedValues(id, mapping);
+					if (filterDef.REVERSE_LIST) {
+						filter['operators'] = ['is'];
+						filter['values'] = filterDef.REVERSE_LIST;
+					} else {
+						filter['operators'] = ['equal', 'not_equal', 'in', 'not_in', 'is_null', 'is_not_null'];
+						filter['values'] = getDecodedValues(id, mapping);
+					}
 				} else {
 					if (type == "integer") {
-						/*
-						var inputFunction = function(rule, name) {
-					    	 var filter = rule.filter || {};
-					    	 var validation = rule.validation || {};
-					    	 var $opcontainer = rule.$el.find('.rule-operator-container select');
-					    	 //alert("Input creation "+$opcontainer);
-						     $opcontainer.on('change', function () { 
-						    	 var operator = $(this).val();
-						    	  //alert("on Change op changed "+$(this).val()+","+operator);
-						    	  var el = $(rule.$el).find('.rule-value-container');
-						    	  if (operator == "in" || operator == "not_in") {
-						    		  $(rule.$el).find('.rule-value-container [name$=_1]').hide();
-						    		  $(rule.$el).find('.rule-value-container [name$=_3]').show();
-						    	  } else {
-						    		  $(rule.$el).find('.rule-value-container [name$=_1]').show();
-						    		  $(rule.$el).find('.rule-value-container [name$=_3]').hide();
-						    	  }
-						     });
-						     
-						     return customNumberInputField(name, lang_code, filter, validation);
-						};
-						var valueGetter = function(rule) {
-						    if (rule.operator.nb_inputs == 1) {
-						    	if (! rule.operator.multiple )
-						    		return rule.$el.find('.rule-value-container [name$=_1]').val().trim();
-						    	else 
-						    		var r = [];
-						    		var v = rule.$el.find('.rule-value-container [name$=_3]').val();
-						    		if (v.indexOf(",")>-1) {
-						    			 v.split(',').forEach(function( vv ) {
-						    				 r.push(vv.trim());
-						    			 })
-						    			 return r;
-						    		} else {
-						    			r.push(v.trim());
-						    		}
-						    		return r;
-						    } 
-						    if (rule.operator.nb_inputs == 2) {
-						    	var r = [];
-					    			r.push(rule.$el.find('.rule-value-container [name$=_0_1]').val().trim());
-					    			r.push(rule.$el.find('.rule-value-container [name$=_1_1]').val().trim());
-					    			//alert ("R:"+ r[0]+"-"+r[1]);
-					    			return r;
-						    }
-						};
-						
-						var valueSetter = function(rule, value) {
-					    	  //alert("Value Setter:" +value);
-					    	  //alert("op "+rule.operator.type);
-					    	  var name = rule.id;
-					    	  var operator = rule.operator.type;
-					    	  var setted = false;
-					    	  
-				    		  if(rule.operator.type == 'in' || rule.operator.type == 'not_in' ) {
-				    			  rule.$el.find('.rule-value-container [name$=_0_3]').val(value);
-				    			  rule.$el.find('.rule-value-container [name$=_0_3]').show();
-				    			  rule.$el.find('.rule-value-container [name$=_0_1]').hide();
-				    			  setted = true;
-				    		  }
-				    		  
-				    		  if (! setted)
-				    		  {  
-						        if (rule.operator.nb_inputs == 1) {
-						        	
-						          rule.$el.find('.rule-value-container [name$=_0_1]').show();
-								  rule.$el.find('.rule-value-container [name$=_0_3]').hide();
-								  rule.$el.find('.rule-value-container [name$=_0_1]').val(value).trigger('change');
-						        } 
-						        if (rule.operator.nb_inputs == 2) {
-						           value.forEach(function(val, index) {
-						        	   rule.$el.find('.rule-value-container [name$=_'+index+'_1]').show();
-						        	   rule.$el.find('.rule-value-container [name$=_'+index+'_3]').hide();
-						        	   rule.$el.find('.rule-value-container [name$=_'+index+'_1]').val(val).trigger('change');
-						           });
-						        }
-					    	  }
-						};
-						*/
 
 						var valueGetter = function (rule) {
 							if (rule.operator.type == "in" || rule.operator.type == "not_in") {
@@ -930,7 +863,7 @@
 				}
 
 				if (type === "date") {
-					var format = (items[key].format ? items[key].format : 'YYYY-MM-DD HH:mm:ss');
+					var format = (filterDef.format ? filterDef.format : 'YYYY-MM-DD HH:mm:ss');
 
 					var pluginformat = '';
 					if (format.indexOf("y") > -1 || format.indexOf("Y") > -1) {
@@ -952,17 +885,7 @@
 							//alert("on Change op changed "+$(this).val()+","+operator);
 							if (operator == "period") {
 								$(rule.$el).find('.rule-value-container [name$=_4]').show();
-								/*
-								$(rule.$el).find('.rule-value-container [name$=_4]').on('change', function() {
-									var period = $(this).val();
-									if (period == "days") {
-										$(rule.$el).find('.rule-value-container [name$=_5]').show();
-								
-									} else {
-										$(rule.$el).find('.rule-value-container [name$=_5]').hide();
-									}
-								});
-							*/
+
 								$(rule.$el).find('.rule-value-container [name$=_2]').hide();
 								$(rule.$el).find('.rule-value-container [name$=_3]').hide();
 							} else {
@@ -1048,17 +971,11 @@
 									return "SYSDATE - INTERVAL '" + minutes + "' minute";//"NOW - "+minutes+" minute";			
 								}
 
-								/*if (rule.$el.find('.rule-value-container [name$=_1]').val() != 'CUSTOM')
-									return rule.$el.find('.rule-value-container [name$=_1]').val();
-								*/
-
 								var r = /*"CUSTOM." + */rule.$el.find('.rule-value-container [name$=_2]').val();
 								//alert ("R:"+r);
 								return r;
 							} else {
 								var r = [];
-								//r.push((rule.$el.find('.rule-value-container [name$=_0_1]').val() != 'CUSTOM') ? rule.$el.find('.rule-value-container [name$=_0_1]').val(): rule.$el.find('.rule-value-container [name$=_0_2]').val());
-								//r.push((rule.$el.find('.rule-value-container [name$=_1_1]').val() != 'CUSTOM') ? rule.$el.find('.rule-value-container [name$=_1_1]').val(): rule.$el.find('.rule-value-container [name$=_1_2]').val());
 								r.push(rule.$el.find('.rule-value-container [name$=_0_2]').val());
 								r.push(rule.$el.find('.rule-value-container [name$=_1_2]').val());
 								//alert ("R:"+ r[0]+"-"+r[1]);
@@ -1073,18 +990,10 @@
 						var operator = rule.operator.type;
 						var setted = false;
 
-						/*if(rule.operator.type == 'last_n_minutes' || rule.operator.type == 'before_last_n_minutes' 
-							||  rule.operator.type == 'period') 
-						{
-						setted = true;  
-						rule.$el.find('.rule-value-container [name='+name+'_value_0_2]').hide();
-						}
-						*/
 						if (rule.operator.type == 'less' || rule.operator.type == 'before_last_n_minutes') {
 
 							var minutes = /SYSDATE - INTERVAL '(\d*)' minute/.exec(value);
-							//var minutes = /NOW - (\d*) minute/.exec(value);
-							//var days = /NOW - (\d*)/.exec(value);
+
 							if (minutes) {
 								//alert("Minutes: "+minutes);
 								if (operator != 'before_last_n_minutes')
@@ -1105,8 +1014,6 @@
 								var val0 = value[0];
 								var minutes = /^SYSDATE - INTERVAL '(\d*)' minute$/.exec(val0);
 								var days = /^TRUNC\(SYSDATE\) - INTERVAL '(\d*)' day$/.exec(val0);
-								//var minutes = /^NOW - (\d*) minute$/.exec(val0);
-								//var days = /^TRUNC\(NOW\) - (\d*)$/.exec(val0);
 								var val1 = value[1];
 								if (val0 == 'SYSDATE - 1' && val1 == 'SYSDATE') {
 									if (operator != 'period')
@@ -1170,13 +1077,7 @@
 								rule.$el.find('.rule-value-container [name$=_0_4]').hide();
 								rule.$el.find('.rule-value-container [name$=_0_5]').hide();
 								if (/^\d{4}-\d{2}-\d{2}/.exec(value)) {
-									//rule.$el.find('.rule-value-container [name$=_0_1]').val("CUSTOM").trigger('change');
 									rule.$el.find('.rule-value-container [name$=_0_2]').val(value).trigger('change');
-								} else {
-									/*
-									rule.$el.find('.rule-value-container [name$=_0_1]').val(value).trigger('change');
-									*/
-
 								}
 							}
 							if (rule.operator.nb_inputs == 2) {
@@ -1186,11 +1087,8 @@
 									rule.$el.find('.rule-value-container [name$=_' + index + '_4]').hide();
 									rule.$el.find('.rule-value-container [name$=_' + index + '_5]').hide();
 									if (/^\d{4}-\d{2}-\d{2}/.exec(val)) {
-										//rule.$el.find('.rule-value-container [name$=_'+index+'_1]').val("CUSTOM").trigger('change');
 										rule.$el.find('.rule-value-container [name$=_' + index + '_2]').val(val).trigger('change');
-									} /* else {
-						        	  rule.$el.find('.rule-value-container [name$=_'+index+'_1]').val(val).trigger('change');  
-						         } */
+									}
 								});
 							}
 						}
