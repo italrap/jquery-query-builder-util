@@ -50,4 +50,16 @@ Per creare un oggetto querybuilder
 queryBuilderUtility.createQueryBuilder($('#builder-basic'), [item], {toggle:{visible:false}});
 ```
 
-## 
+## Bower
+
+Per aggiungere l'estensione dellla lingua aggiungere le seguuenti righe nella sezione "overrides" in bower.json
+```json
+
+ "jquery-query-builder-util": {
+      "main": [
+        "dist/js/query-builder-util.js",
+        "dist/i18n/query-builder.it.js"
+      ]
+    },
+
+```
