@@ -303,10 +303,18 @@
 				return event;
 			});
 
-			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event) {
+			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event, rule) {
 				$(event.target).find('.rule-value-container select').change();
 				$(event.target).find('.rule-value-container input').change();
+				var operator = $(event.target).find('.rule-operator-container select').val();
 
+				var selects = $(event.target).find('.rule-value-container select[name$=_0]');
+				if (operator == 'equal' || operator == 'not_equal') {
+					$(selects).removeAttr("multiple");
+				}
+				if (operator == 'in' || operator == 'not_in' || operator == 'in_ic' || operator == 'not_in_ic') {
+					$(selects).attr("multiple", "");
+				}
 			});
 
 			$(element).on('afterUpdateRuleValue.queryBuilder', function (event, rule) {
@@ -816,22 +824,8 @@
 							return r;
 						}
 					};
-					var valueSetter = function (rule, value) {
-						var name = rule.id;
-						var operator = rule.operator.type;
-						var setted = false;
-
-						var el = rule.$el.find('.rule-value-container select[name$=_0]');
-						if (rule.operator.type == 'in' || rule.operator.type == 'not_in') {
-							el.attr('multiple', 'multiple');
-						} else {
-							el.removeAttr('multiple');
-						}
-						el.val(value);
-					};
 					filter['input'] = "select";
 					filter['valueGetter'] = valueGetter;
-					filter['valueSetter'] = valueSetter;
 					if (filterDef.REVERSE_LIST) {
 						filter['operators'] = ['is'];
 						filter['values'] = filterDef.REVERSE_LIST;
