@@ -1,4 +1,16 @@
-(function (window, angular) {
+(function (root, factory) {
+	if (typeof define == 'function' && define.amd) {
+		define(['jquery', 'angular'], factory);
+	}
+	else if (typeof module === 'object' && module.exports) {
+		module.exports = factory(require('jquery'), require('angular'));
+	}
+	else {
+		factory(root.jQuery, root.angular);
+	}
+}(this, function ($, angular) {
+
+	// (function (window, angular) {
 	'use strict';
 	angular
 		.module('QueryBuilderUtility', [])
@@ -242,7 +254,7 @@
 			var lang;
 			if (QueryBuilder.regional_custom)
 				lang = QueryBuilder.regional_custom[lang_code];
-				
+
 			if (lang === undefined) {
 				lang = {};
 			}
@@ -734,58 +746,48 @@
 			if (!lang_code) {
 				lang_code = $translate.use();
 			}
-			/*
-			var customNumberInputField = function (name, lang_code, filter, validation) {
-					
-				var h = '<script  language="javascript"> \
-					 function isNumberKey(event) {  \
-					var charCode = (event.which) ? event.which : event.keyCode; \
-							if (event.shiftKey == false && (charCode == 8 || (charCode >= 44 && charCode <= 46) || (charCode >= 48 && charCode <= 57))) {\
-									return true;\
-							}\
-							return false;\
-						 } \
-						 </script> \<input class="form-control" type="number" name="' + name + '_1"'; 
-								h+= ' onKeyPress="javascript:return isNumberKey(event);"';
-										if (validation.step !== undefined) h+= ' step="' + validation.step + '"';
-										if (validation.min !== undefined) h+= ' min="' + validation.min + '"';
-										if (validation.max !== undefined) h+= ' max="' + validation.max + '"';
-										if (filter.placeholder) h+= ' placeholder="' + filter.placeholder + '"';
-										if (filter.size) h+= ' size="' + filter.size + '"';
-										h+= '>';
-									  
-										h+= '<input class="form-control" type="text" name="' + name + '_3" style="display:none" ';
-										h+= ' onKeyPress="javascript:return isNumberKey(event);"';
-										if (filter.placeholder) h+= ' placeholder="' + filter.placeholder + '"';
-										if (filter.size) h+= ' size="' + filter.size + '"';
-										h+= '>';
-									  
-						 return h;
-			};
-			*/
-			var customDateTimePicker = function (name, lang_code) {
 
-				return '<script  language="javascript"> \
-    			 function changePeriod(element) { \
-    		 	 var period = $(element).val(); \
-    			  if (period == "days") { \
-        	  		$(element).parent().parent().find(".rule-value-container [name$=_5]").show(); \
-    			  } else { \
-        	  		$(element).parent().parent().find(".rule-value-container [name$=_5]").hide(); \
-    			  } \
-    		 } \
-    		</script> \
-       	      <input name="'+ name + '_2" ></input> \
-       	      <input type="number" name="'+ name + '_3" style="display:none;"></input> \
-       	      <select name="'+ name + '_4" style="display:none;" onchange="changePeriod(this)" > \
-       	      	<option value="day">'+ periodsTranslations.day[lang_code] + '</option> \
-       	        <option value="days">'+ periodsTranslations.days[lang_code] + '</option> \
-       	      	<option value="week">'+ periodsTranslations.week[lang_code] + '</option> \
-       	      	<option value="month">'+ periodsTranslations.month[lang_code] + '</option> \
-       	   	  </select> \
-       	      <input type="number" name="'+ name + '_5" style="display:none;"></input>';
+			var customDateTimePicker = function (qb, rule, name, lang_code) {
+				var elems = $(document.createDocumentFragment());
+				var number = name.substr(-2);
+				function notifyChanges(event) {
+					if (!rule._updating_input) {
+						rule._updating_value = true;
+						rule.value = qb.getRuleInputValue(rule);
+						rule._updating_value = false;
+					}
+				}
+				function changePeriod(event) {
+					var element = event.target;
+					if ($(element).is(":visible")) {
+						var period = $(element).val();
+						if (period == "days") {
+							rule.$el.find(".rule-value-container [name$=_5]").show();
+						} else {
+							rule.$el.find(".rule-value-container [name$=_5]").hide();
+						}
+					}
+				}
+				var elem;
+				elem = $('<input>', { name: name + '_2' });
+				elem.on('change', notifyChanges);
+				elems.append(elem);
+				elem = $('<input>', { name: name + '_3', type: 'number' }).hide();
+				elem.on('change', notifyChanges);
+				elems.append(elem);
+				var select = $('<select>', { name: name + '_4' }).hide();
+				for (var p in { 'day': 0, 'days': 0, 'week': 0, 'month': 0 }) {
+					var o = $('<option>', { value: p }).text(periodsTranslations[p][lang_code]);
+					select.append(o);
+				}
+				select.on('change', changePeriod);
+				select.on('change', notifyChanges);
+				elems.append(select);
+				elem = $('<input>', { name: name + '_5', type: 'number' }).hide();
+				elem.on('change', notifyChanges);
+				elems.append(elem);
+				return elems;
 			};
-
 
 			var filters = [];
 			for (var key in items) {
@@ -878,36 +880,38 @@
 						pluginformat = pluginformat + 'HH:mm:ss';
 					}
 					var inputFunction = function (rule, name) {
+						var qb = this;
 						/**/
-
 						var $opcontainer = rule.$el.find('.rule-operator-container select');
-						//alert("Input creation "+$opcontainer);
-						$opcontainer.on('change', function () {
+						var customObj;
+						var operator = $opcontainer.val();
+						customObj = customDateTimePicker(qb, rule, name, lang_code);
+						if ($opcontainer.attr(name + 'eventAttached') !== true) {
+							$opcontainer.attr(name + 'eventAttached', true);
+							$opcontainer.on('change', function () {
 
-							var operator = $(this).val();
-							//alert("on Change op changed "+$(this).val()+","+operator);
-							if (operator == "period") {
-								$(rule.$el).find('.rule-value-container [name$=_4]').show();
-
-								$(rule.$el).find('.rule-value-container [name$=_2]').hide();
-								$(rule.$el).find('.rule-value-container [name$=_3]').hide();
-							} else {
-								$(rule.$el).find('.rule-value-container [name$=_4]').hide();
-								$(rule.$el).find('.rule-value-container [name$=_5]').hide();
-								if (operator == "last_n_minutes" || operator == "before_last_n_minutes") {
-									$(rule.$el).find('.rule-value-container [name$=_3]').show();
-
+								var operator = $(this).val();
+								//alert("on Change op changed "+$(this).val()+","+operator);
+								if (operator == "period") {
+									$(rule.$el).find('.rule-value-container [name$=_4]').show();
+									$(rule.$el).find('.rule-value-container [name$=_5]').hide();
 									$(rule.$el).find('.rule-value-container [name$=_2]').hide();
-								} else {
 									$(rule.$el).find('.rule-value-container [name$=_3]').hide();
-
-
-									$(rule.$el).find('.rule-value-container [name$=_2]').show();
-
+									// $(rule.$el).find('.rule-value-container [name$=_4]').trigger('change');
+								} else {
+									$(rule.$el).find('.rule-value-container [name$=_4]').hide();
+									$(rule.$el).find('.rule-value-container [name$=_5]').hide();
+									if (operator == "last_n_minutes" || operator == "before_last_n_minutes") {
+										$(rule.$el).find('.rule-value-container [name$=_3]').show();
+										$(rule.$el).find('.rule-value-container [name$=_2]').hide();
+									} else {
+										$(rule.$el).find('.rule-value-container [name$=_3]').hide();
+										$(rule.$el).find('.rule-value-container [name$=_2]').show();
+									}
 								}
-							}
 
-						});
+							});
+						}
 
 
 						var $container = rule.$el.find('.rule-value-container');
@@ -928,7 +932,7 @@
 						});
 
 
-						return customDateTimePicker(name, lang_code);
+						return customObj;
 					};
 
 					var valueGetter = function (rule) {
@@ -1116,4 +1120,4 @@
 			return filters;
 		}
 	}
-})(window, window.angular);
+}));
