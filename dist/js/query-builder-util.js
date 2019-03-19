@@ -266,20 +266,20 @@
 					namedGroups: false
 				}
 			};
-			var localOptions = angular.merge({}, this.defaultOptions, options);
-			if (localOptions.sortable) {
-				plugins.sortable = localOptions.sortable;
-			}
-
-			$(element).queryBuilder({
+			var localOptions = angular.merge({
 				filters: filters, lang_code: lang_code, display_errors: true
-				, operators: this.getQueryBuilderOperators()
-				, sqlOperators: this.getSqlOperators()
+				, operators: service.getQueryBuilderOperators()
+				, sqlOperators: service.getSqlOperators()
 				, plugins: plugins
 				, allow_empty: true
 				, lang: lang
 				/*, iconUp: 'glyphicon glyphicon-minus', iconDown: 'glyphicon glyphicon-plus', namedGroups: false*/
-			});
+			}, this.defaultOptions, options);
+			if (localOptions.sortable) {
+				plugins.sortable = localOptions.sortable;
+			}
+
+			$(element).queryBuilder(localOptions);
 
 			function autowidth(el) {
 				return (el.value.length == 0 ? "16px;" : (el.value.length + 1) * 8) + "px";
@@ -304,11 +304,11 @@
 			});
 
 			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event, rule) {
-				$(event.target).find('.rule-value-container select').change();
-				$(event.target).find('.rule-value-container input').change();
-				var operator = $(event.target).find('.rule-operator-container select').val();
+				rule.$el.find('.rule-value-container select').change();
+				rule.$el.find('.rule-value-container input').change();
+				var operator = rule.$el.find('.rule-operator-container select').val();
 
-				var selects = $(event.target).find('.rule-value-container select[name$=_0]');
+				var selects = rule.$el.find('.rule-value-container select[name$=_0]');
 				if (operator == 'equal' || operator == 'not_equal') {
 					$(selects).removeAttr("multiple");
 				}
@@ -339,8 +339,7 @@
 
 			/*Marisa*/
 			$(element).on('afterCreateRuleFilters.queryBuilder', function (event, rule) {
-				var a = rule.id + "_filter";
-				var b = $(event.target).find("[name='" + a + "']");
+				var b = rule.$el.find("[name$=_filter]");
 				b.focus();
 			});
 
@@ -755,9 +754,29 @@
 				lang_code = $translate.use();
 			}
 
-			var customDateTimePicker = function (qb, rule, name, lang_code) {
+			function handleHideShowDatePicker(elem, operator) {
+				if (operator == "period") {
+					elem.find('[name$=_4]').show();
+					elem.find('[name$=_5]').hide();
+					elem.find('[name$=_2]').hide();
+					elem.find('[name$=_3]').hide();
+					// $(rule.$el).find('.rule-value-container [name$=_4]').trigger('change');
+				} else {
+					elem.find('[name$=_4]').hide();
+					elem.find('[name$=_5]').hide();
+					if (operator == "last_n_minutes" || operator == "before_last_n_minutes") {
+						elem.find('[name$=_3]').show();
+						elem.find('[name$=_2]').hide();
+					} else {
+						elem.find('[name$=_3]').hide();
+						elem.find('[name$=_2]').show();
+					}
+				}
+			}
+
+			var customDateTimePicker = function (qb, rule, name, operator, lang_code) {
 				var elems = $(document.createDocumentFragment());
-				var number = name.substr(-2);
+				// var number = name.substr(-2);
 				function notifyChanges(event) {
 					if (!rule._updating_input) {
 						rule._updating_value = true;
@@ -780,10 +799,10 @@
 				elem = $('<input>', { name: name + '_2' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
-				elem = $('<input>', { name: name + '_3', type: 'number' }).hide();
+				elem = $('<input>', { name: name + '_3', type: 'number' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
-				var select = $('<select>', { name: name + '_4' }).hide();
+				var select = $('<select>', { name: name + '_4' });
 				for (var p in { 'day': 0, 'days': 0, 'week': 0, 'month': 0 }) {
 					var o = $('<option>', { value: p }).text(periodsTranslations[p][lang_code]);
 					select.append(o);
@@ -791,9 +810,11 @@
 				select.on('change', changePeriod);
 				select.on('change', notifyChanges);
 				elems.append(select);
-				elem = $('<input>', { name: name + '_5', type: 'number' }).hide();
+				elem = $('<input>', { name: name + '_5', type: 'number' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
+				handleHideShowDatePicker(elems, operator);
+				// elem = elems.find('[name$=_5]');
 				return elems;
 			};
 
@@ -879,31 +900,13 @@
 						var $opcontainer = rule.$el.find('.rule-operator-container select');
 						var customObj;
 						var operator = $opcontainer.val();
-						customObj = customDateTimePicker(qb, rule, name, lang_code);
+						customObj = customDateTimePicker(qb, rule, name, operator, lang_code);
 						if ($opcontainer.attr(name + 'eventAttached') !== true) {
 							$opcontainer.attr(name + 'eventAttached', true);
 							$opcontainer.on('change', function () {
-
 								var operator = $(this).val();
-								//alert("on Change op changed "+$(this).val()+","+operator);
-								if (operator == "period") {
-									$(rule.$el).find('.rule-value-container [name$=_4]').show();
-									$(rule.$el).find('.rule-value-container [name$=_5]').hide();
-									$(rule.$el).find('.rule-value-container [name$=_2]').hide();
-									$(rule.$el).find('.rule-value-container [name$=_3]').hide();
-									// $(rule.$el).find('.rule-value-container [name$=_4]').trigger('change');
-								} else {
-									$(rule.$el).find('.rule-value-container [name$=_4]').hide();
-									$(rule.$el).find('.rule-value-container [name$=_5]').hide();
-									if (operator == "last_n_minutes" || operator == "before_last_n_minutes") {
-										$(rule.$el).find('.rule-value-container [name$=_3]').show();
-										$(rule.$el).find('.rule-value-container [name$=_2]').hide();
-									} else {
-										$(rule.$el).find('.rule-value-container [name$=_3]').hide();
-										$(rule.$el).find('.rule-value-container [name$=_2]').show();
-									}
-								}
-
+								var valueContainer = $(rule.$el).find('.rule-value-container');
+								handleHideShowDatePicker(valueContainer, operator);
 							});
 						}
 
@@ -1069,31 +1072,23 @@
 
 							}
 						}
-
 						if (!setted) {
+							var valuesArray = [];
 							if (rule.operator.nb_inputs == 1) {
-
-								rule.$el.find('.rule-value-container [name$=_0_2]').show();
-								rule.$el.find('.rule-value-container [name$=_0_3]').hide();
-								rule.$el.find('.rule-value-container [name$=_0_4]').hide();
-								rule.$el.find('.rule-value-container [name$=_0_5]').hide();
-								if (/^\d{4}-\d{2}-\d{2}/.exec(value)) {
-									rule.$el.find('.rule-value-container [name$=_0_2]').val(value).trigger('change');
+								valuesArray = [value];
+							} else if (rule.operator.nb_inputs == 2) {
+								valuesArray = value;
+							}
+							valuesArray.forEach(function (val, index) {
+								rule.$el.find('.rule-value-container [name$=_' + index + '_2]').show();
+								rule.$el.find('.rule-value-container [name$=_' + index + '_3]').hide();
+								rule.$el.find('.rule-value-container [name$=_' + index + '_4]').hide();
+								rule.$el.find('.rule-value-container [name$=_' + index + '_5]').hide();
+								if (/^\d{4}-\d{2}-\d{2}/.exec(val)) {
+									rule.$el.find('.rule-value-container [name$=_' + index + '_2]').val(val).trigger('change');
 								}
-							}
-							if (rule.operator.nb_inputs == 2) {
-								value.forEach(function (val, index) {
-									rule.$el.find('.rule-value-container [name$=_' + index + '_2]').show();
-									rule.$el.find('.rule-value-container [name$=_' + index + '_3]').hide();
-									rule.$el.find('.rule-value-container [name$=_' + index + '_4]').hide();
-									rule.$el.find('.rule-value-container [name$=_' + index + '_5]').hide();
-									if (/^\d{4}-\d{2}-\d{2}/.exec(val)) {
-										rule.$el.find('.rule-value-container [name$=_' + index + '_2]').val(val).trigger('change');
-									}
-								});
-							}
+							});
 						}
-
 					};
 
 					filter['type'] = "datetime";
