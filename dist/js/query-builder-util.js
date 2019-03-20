@@ -310,10 +310,22 @@
 
 				var selects = rule.$el.find('.rule-value-container select[name$=_0]');
 				if (operator == 'equal' || operator == 'not_equal') {
-					$(selects).removeAttr("multiple");
+					if(selects.attr("multiple")){
+						var val = selects.val();
+						selects.removeAttr("multiple");
+						if(val && angular.isArray(val)){
+							selects.val(val[0]);
+						}
+					}
 				}
 				if (operator == 'in' || operator == 'not_in' || operator == 'in_ic' || operator == 'not_in_ic') {
-					$(selects).attr("multiple", "");
+					if(!selects.attr("multiple")){
+						var val = selects.val();
+						$(selects).attr("multiple", "");
+						if(val && !angular.isArray(val)){
+							selects.val([val]);
+						}
+					}
 				}
 			});
 
@@ -359,8 +371,7 @@
 					}
 				}
 
-
-				$(event.target).find('.rule-value-container [name$=_2]').datetimepicker({
+				rule.$el.find('.rule-value-container [name$=_2]').datetimepicker({
 					format: 'YYYY-MM-DD HH:mm:ss', //pluginformat, 
 					//showTodayButton: true,
 					showClose: true,
