@@ -310,19 +310,19 @@
 
 				var selects = rule.$el.find('.rule-value-container select[name$=_0]');
 				if (operator == 'equal' || operator == 'not_equal') {
-					if(selects.attr("multiple")){
+					if (selects.attr("multiple")) {
 						var val = selects.val();
 						selects.removeAttr("multiple");
-						if(val && angular.isArray(val)){
+						if (val && angular.isArray(val)) {
 							selects.val(val[0]);
 						}
 					}
 				}
 				if (operator == 'in' || operator == 'not_in' || operator == 'in_ic' || operator == 'not_in_ic') {
-					if(!selects.attr("multiple")){
+					if (!selects.attr("multiple")) {
 						var val = selects.val();
 						$(selects).attr("multiple", "");
-						if(val && !angular.isArray(val)){
+						if (val && !angular.isArray(val)) {
 							selects.val([val]);
 						}
 					}
@@ -711,6 +711,7 @@
 				last_n_minutes: { op: 'BETWEEN ?', sep: ' AND ' },
 				period: { op: 'BETWEEN ?', sep: ' AND ' },
 				before_last_n_minutes: { op: '< ?' },
+				before_last_n_days: { op: '< ?' },
 			};
 		}
 
@@ -748,18 +749,12 @@
 				{ type: 'is_not_null', nb_inputs: 0, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
 				{ type: 'last_n_minutes', nb_inputs: 1, multiple: true, apply_to: ['datetime'] },
 				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
+				{ type: 'before_last_n_days', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
 				{ type: 'period', nb_inputs: 1, multiple: true, apply_to: ['datetime'] }
 			];
 		}
 
 		function getQueryBuilderFilters(items, lang_code) {
-
-			var periodsTranslations = {
-				day: { 'it': "ultime 24 ore", 'en': "last 24 hours" },
-				days: { 'it': "ultimi n giorni completi", 'en': "previous n days" },
-				week: { 'it': "ultima settimana completa", 'en': "previous week" },
-				month: { 'it': "ultimo mese completo", 'en': "previous month" },
-			};
 
 			if (!lang_code) {
 				lang_code = $translate.use();
@@ -775,7 +770,7 @@
 				} else {
 					elem.find('[name$=_4]').hide();
 					elem.find('[name$=_5]').hide();
-					if (operator == "last_n_minutes" || operator == "before_last_n_minutes") {
+					if (operator == "last_n_minutes" || operator == "before_last_n_minutes" || operator == "before_last_n_days") {
 						elem.find('[name$=_3]').show();
 						elem.find('[name$=_2]').hide();
 					} else {
@@ -815,7 +810,7 @@
 				elems.append(elem);
 				var select = $('<select>', { name: name + '_4' });
 				for (var p in { 'day': 0, 'days': 0, 'week': 0, 'month': 0 }) {
-					var o = $('<option>', { value: p }).text(periodsTranslations[p][lang_code]);
+					var o = $('<option>', { value: p }).text(qb.translate('periods', p));
 					select.append(o);
 				}
 				select.on('change', changePeriod);
@@ -968,23 +963,27 @@
 									}
 									//alert ("R:"+ r[0]+"-"+r[1]);
 									return r;
-								}
-								if (rule.operator.type == 'last_n_minutes') {
-									//between 
-									var r = [];
-									var minutes = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
-									rule.$el.find('.rule-value-container [name$=_3]').val(minutes);
-									r.push("SYSDATE - INTERVAL '" + minutes + "' minute"); //"NOW - "+minutes+" minute");			
-									r.push("SYSDATE"); //"NOW");
-									//alert ("R:"+ r[0]+"-"+r[1]);
-									return r;
-								}
-								if (rule.operator.type == 'before_last_n_minutes') {
-									//less
-									var minutes = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
-									rule.$el.find('.rule-value-container [name$=_3]').val(minutes);
-									return "SYSDATE - INTERVAL '" + minutes + "' minute";//"NOW - "+minutes+" minute";			
-								}
+								} else
+									if (rule.operator.type == 'last_n_minutes') {
+										//between
+										var r = [];
+										var minutes = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
+										rule.$el.find('.rule-value-container [name$=_3]').val(minutes);
+										r.push("SYSDATE - INTERVAL '" + minutes + "' minute"); //"NOW - "+minutes+" minute");
+										r.push("SYSDATE"); //"NOW");
+										//alert ("R:"+ r[0]+"-"+r[1]);
+										return r;
+									} else if (rule.operator.type == 'before_last_n_minutes' || rule.operator.type == 'before_last_n_days') {
+										//less
+										var value = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
+										rule.$el.find('.rule-value-container [name$=_3]').val(value);
+										if (rule.operator.type == 'before_last_n_minutes') {
+											var value = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
+											return "SYSDATE - INTERVAL '" + value + "' minute";//"NOW - "+value+" minute";
+										} else if (rule.operator.type == 'before_last_n_days') {
+											return "TRUNC(SYSDATE) - INTERVAL '" + value + "' day";//"NOW - "+value+" minute";
+										}
+									}
 
 								var r = /*"CUSTOM." + */rule.$el.find('.rule-value-container [name$=_2]').val();
 								//alert ("R:"+r);
@@ -1005,9 +1004,10 @@
 						var operator = rule.operator.type;
 						var setted = false;
 
-						if (rule.operator.type == 'less' || rule.operator.type == 'before_last_n_minutes') {
+						if (rule.operator.type == 'less' || rule.operator.type == 'before_last_n_minutes' || rule.operator.type == 'before_last_n_days') {
 
 							var minutes = /SYSDATE - INTERVAL '(\d*)' minute/.exec(value);
+							var days = /TRUNC(SYSDATE) - INTERVAL '(\d*)' day/.exec(value);
 
 							if (minutes) {
 								//alert("Minutes: "+minutes);
@@ -1016,6 +1016,18 @@
 
 								//alert("Value Setter minutes :" +minutes[1]);
 								rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(minutes[1]);
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').show();
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+								setted = true;
+							} else if (days) {
+								//alert("Days: "+days);
+								if (operator != 'before_last_n_days')
+									rule.$el.find('.rule-operator-container select').val('before_last_n_days').trigger('change');
+
+								//alert("Value Setter minutes :" +minutes[1]);
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(days[1]);
 								rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').show();
 								rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
 								rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
@@ -1105,7 +1117,7 @@
 					filter['type'] = "datetime";
 					filter['operators'] = ['equal', 'not_equal', 'less', 'less_or_equal',
 						'greater', 'greater_or_equal', 'between', 'not_between',
-						'last_n_minutes', 'before_last_n_minutes', 'period', 'is_null', 'is_not_null'];
+						'last_n_minutes', 'before_last_n_minutes', 'before_last_n_days', 'period', 'is_null', 'is_not_null'];
 					filter['input'] = inputFunction;
 					filter['valueGetter'] = valueGetter;
 					filter['valueSetter'] = valueSetter;
