@@ -857,6 +857,14 @@
 				// elem = elems.find('[name$=_5]');
 				return elems;
 			};
+			function isEmpty(obj) {
+				if (!obj) return true;
+				for (var key in obj) {
+					if (obj.hasOwnProperty(key))
+						return false;
+				}
+				return true;
+			}
 
 			var filters = [];
 			for (var key in items) {
@@ -872,7 +880,10 @@
 				if (type === "number") { type = "integer"; }
 
 				var filter = { id: id, field: field, type: type, label: label, data: lc };
-				var mapping = filterDef.values || filterDef.MAPPING_LIST || filterDef.MAPPING_ENUM || "";
+
+				var mapping = filterDef.values;
+				if (isEmpty(mapping))
+					mapping = filterDef.MAPPING_LIST || filterDef.MAPPING_ENUM || "";
 				//if (key == 'SOURCE') mapping =  [ "BB", "TX", "CX", "MOB", "RDG"];
 				//if (key == 'SEVERITY') mapping =  { "CLEAR" :  0, "INFO" : 1,"WARNING" : 2,"MINOR" : 3,"MAJOR" : 4 ,"CRITICAL" : 5 };
 				if (mapping || id in decodes || filterDef.REVERSE_LIST) {
