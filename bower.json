@@ -1,11 +1,11 @@
 {
   "name": "jquery-query-builder-util",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "authors": [
     {
       "name": "Davide Graziosi",
       "email": "davide.graziosi@exprivia.com",
-      "homepage": "https://git.expriviatelcomedia.it/INPAS/jquery-query-builder-util"
+      "homepage": "https://github.com/davegraziosi/jquery-query-builder-util.git"
     },
     {
       "name": "Luigi Parlati",

@@ -272,6 +272,7 @@
 				, sqlOperators: service.getSqlOperators()
 				, plugins: plugins
 				, allow_empty: true
+				, saveNativeRules: true
 				, lang: lang
 				/*, iconUp: 'glyphicon glyphicon-minus', iconDown: 'glyphicon glyphicon-plus', namedGroups: false*/
 			}, this.defaultOptions, options);
@@ -708,10 +709,40 @@
 				is_not_empty: { op: '!= \'\'' },
 				is_null: { op: 'IS NULL' },
 				is_not_null: { op: 'IS NOT NULL' },
-				last_n_minutes: { op: 'BETWEEN ?', sep: ' AND ' },
-				period: { op: 'BETWEEN ?', sep: ' AND ' },
-				before_last_n_minutes: { op: '< ?' },
-				before_last_n_days: { op: '< ?' },
+				last_n_minutes: {
+					op: 'BETWEEN ?', sep: ' AND ',
+					sqlFn: function (values) {
+						return "BETWEEN (SYSDATE - INTERVAL '" + values[0] + "' minute) AND SYSDATE";
+					}
+				},
+				period: {
+					op: 'BETWEEN ?', sep: ' AND ',
+					sqlFn: function (values) {
+						var subOp = values[0];
+						switch (subOp) {
+							case 'days':
+								return "BETWEEN (TRUNC(SYSDATE) - INTERVAL '" + values[1] + "' day) AND TRUNC(SYSDATE)";
+							case 'day':
+								return 'BETWEEN SYSDATE - 1 AND SYSDATE';
+							case 'week':
+								return "BETWEEN TRUNC(SYSDATE,'IW') AND TRUNC(SYSDATE,'IW')+7-1/86400";
+							case 'month':
+								return "BETWEEN TRUNC(ADD_MONTHS(SYSDATE, -1),'MM') AND (TRUNC(SYSDATE,'MM')-1/86400)";
+						}
+					}
+				},
+				before_last_n_minutes: {
+					op: '< ?',
+					sqlFn: function (values) {
+						return "< (SYSDATE - INTERVAL '" + values[0] + "' minute)";
+					}
+				},
+				before_last_n_days: {
+					op: '< ?',
+					sqlFn: function (values) {
+						return "< (SYSDATE - INTERVAL '" + values[0] + "' day)";
+					}
+				},
 			};
 		}
 
@@ -795,7 +826,10 @@
 					if ($(element).is(":visible")) {
 						var period = $(element).val();
 						if (period == "days") {
-							rule.$el.find(".rule-value-container [name$=_5]").show();
+							var c = rule.$el.find(".rule-value-container [name$=_5]").show();
+							if (!c.val()) {
+								c.val(1);
+							}
 						} else {
 							rule.$el.find(".rule-value-container [name$=_5]").hide();
 						}
@@ -939,7 +973,27 @@
 					};
 
 					var valueGetter = function (rule) {
+						var qb = this;
 						if (rule.operator.nb_inputs > 0) {
+							if (qb.settings.saveNativeRules) {
+								var r = [];
+								switch (rule.operator.type) {
+									case 'period':
+										var period = rule.$el.find('.rule-value-container [name$=_4]').val();
+										r.push(period);
+										if (period == 'days') {
+											var days = rule.$el.find('.rule-value-container [name$=_5]').val() || 1;
+											r.push(days);
+										}
+										return r;
+									case 'last_n_minutes':
+									case 'before_last_n_minutes':
+									case 'before_last_n_days':
+										var val = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
+										r.push(val);
+										return r;
+								}
+							}
 							if (rule.operator.nb_inputs == 1) {
 
 								if (rule.operator.type == 'period') {
@@ -965,11 +1019,11 @@
 									return r;
 								} else
 									if (rule.operator.type == 'last_n_minutes') {
-										//between
+										//between 
 										var r = [];
 										var minutes = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
 										rule.$el.find('.rule-value-container [name$=_3]').val(minutes);
-										r.push("SYSDATE - INTERVAL '" + minutes + "' minute"); //"NOW - "+minutes+" minute");
+										r.push("SYSDATE - INTERVAL '" + minutes + "' minute"); //"NOW - "+minutes+" minute");			
 										r.push("SYSDATE"); //"NOW");
 										//alert ("R:"+ r[0]+"-"+r[1]);
 										return r;
@@ -979,9 +1033,9 @@
 										rule.$el.find('.rule-value-container [name$=_3]').val(value);
 										if (rule.operator.type == 'before_last_n_minutes') {
 											var value = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
-											return "SYSDATE - INTERVAL '" + value + "' minute";//"NOW - "+value+" minute";
+											return "SYSDATE - INTERVAL '" + value + "' minute";//"NOW - "+value+" minute";			
 										} else if (rule.operator.type == 'before_last_n_days') {
-											return "TRUNC(SYSDATE) - INTERVAL '" + value + "' day";//"NOW - "+value+" minute";
+											return "TRUNC(SYSDATE) - INTERVAL '" + value + "' day";//"NOW - "+value+" minute";			
 										}
 									}
 
@@ -1037,61 +1091,89 @@
 
 						} else if (rule.operator.type == 'last_n_minutes' || rule.operator.type == 'period' || rule.operator.type == 'between') {
 							//alert ("between");
-							if (value && value.length == 2) {
+							if (value && value.length == 1) {
+								var val0 = value[0];
+								if (operator == 'period') {
+									switch (val0) {
+										case 'day':
+										case 'week':
+										case 'month':
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val(val0).show().trigger("change");
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+											setted = true;
+											break;
+									}
+								}
+
+							} else if (value && value.length == 2) {
 								var val0 = value[0];
 								var minutes = /^SYSDATE - INTERVAL '(\d*)' minute$/.exec(val0);
 								var days = /^TRUNC\(SYSDATE\) - INTERVAL '(\d*)' day$/.exec(val0);
 								var val1 = value[1];
-								if (val0 == 'SYSDATE - 1' && val1 == 'SYSDATE') {
-									if (operator != 'period')
-										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("day").trigger("change");
-									setted = true;
-								} else if (days && val1 == 'TRUNC(SYSDATE)') {
-									if (operator != 'period')
-										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(days[1]);
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').show();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("days").trigger("change");
-									setted = true;
-								} else if (minutes && val1 == 'SYSDATE') {
-									if (operator != 'last_n_minutes')
-										rule.$el.find('.rule-operator-container select').val('last_n_minutes').trigger('change');
-									//alert("Value Setter minutes :" +minutes[1]);
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(minutes[1]);
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').show();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-									setted = true;
-								} else if (val0 == "TRUNC(SYSDATE,'IW')" && val1 == "TRUNC(SYSDATE,'IW')+7-1/86400") {
-									//week
-									if (operator != 'period')
-										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("week").trigger("change");
-									setted = true;
-								} else if (val0 == "TRUNC(ADD_MONTHS(SYSDATE, -1),'MM')" && val1 == "TRUNC(SYSDATE,'MM')-1/86400") {
-									//month
-									if (operator != 'period')
-										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("month").trigger("change");
-									setted = true;
+								if (operator == 'period') {
+									switch (val0) {
+										case 'days':
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val(val0).show().trigger("change");
+											rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(val1 || 1).show();
+											setted = true;
+											break;
+									}
 								}
+								if (!setted)
+									if (val0 == 'SYSDATE - 1' && val1 == 'SYSDATE') {
+										if (operator != 'period')
+											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("day").trigger("change");
+										setted = true;
+									} else if (days && val1 == 'TRUNC(SYSDATE)') {
+										if (operator != 'period')
+											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(days[1]);
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').show();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("days").trigger("change");
+										setted = true;
+									} else if (minutes && val1 == 'SYSDATE') {
+										if (operator != 'last_n_minutes')
+											rule.$el.find('.rule-operator-container select').val('last_n_minutes').trigger('change');
+										//alert("Value Setter minutes :" +minutes[1]);
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(minutes[1]);
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').show();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+										setted = true;
+									} else if (val0 == "TRUNC(SYSDATE,'IW')" && val1 == "TRUNC(SYSDATE,'IW')+7-1/86400") {
+										//week
+										if (operator != 'period')
+											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("week").trigger("change");
+										setted = true;
+									} else if (val0 == "TRUNC(ADD_MONTHS(SYSDATE, -1),'MM')" && val1 == "TRUNC(SYSDATE,'MM')-1/86400") {
+										//month
+										if (operator != 'period')
+											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("month").trigger("change");
+										setted = true;
+									}
 
 							}
 						}
