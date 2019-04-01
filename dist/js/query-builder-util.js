@@ -711,8 +711,8 @@
 				is_not_null: { op: 'IS NOT NULL' },
 				last_n_minutes: {
 					op: 'BETWEEN ?', sep: ' AND ',
-					sqlFn: function (values) {
-						return "BETWEEN (SYSDATE - INTERVAL '" + values[0] + "' minute) AND SYSDATE";
+					sqlFn: function (value) {
+						return "BETWEEN (SYSDATE - INTERVAL '" + value + "' minute) AND SYSDATE";
 					}
 				},
 				period: {
@@ -733,14 +733,14 @@
 				},
 				before_last_n_minutes: {
 					op: '< ?',
-					sqlFn: function (values) {
-						return "< (SYSDATE - INTERVAL '" + values[0] + "' minute)";
+					sqlFn: function (value) {
+						return "< (SYSDATE - INTERVAL '" + value + "' minute)";
 					}
 				},
 				before_last_n_days: {
 					op: '< ?',
-					sqlFn: function (values) {
-						return "< (SYSDATE - INTERVAL '" + values[0] + "' day)";
+					sqlFn: function (value) {
+						return "< (SYSDATE - INTERVAL '" + value + "' day)";
 					}
 				},
 			};
