@@ -743,6 +743,11 @@
 						return "< (SYSDATE - INTERVAL '" + value + "' day)";
 					}
 				},
+				is: { op: 'IN(?)', sep: ', ' ,
+                      sqlFn: function (value) {
+                        return "IN ("+value+")";
+                      }
+				}
 			};
 		}
 
@@ -781,7 +786,8 @@
 				{ type: 'last_n_minutes', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
 				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
 				{ type: 'before_last_n_days', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
-				{ type: 'period', nb_inputs: 1, multiple: true, apply_to: ['datetime'] }
+				{ type: 'period', nb_inputs: 1, multiple: true, apply_to: ['datetime'] },
+				{ type: 'is', nb_inputs: 1, multiple: false, apply_to: ['string', 'number'] }
 			];
 		}
 
