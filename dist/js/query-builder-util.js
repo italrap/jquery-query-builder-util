@@ -526,7 +526,10 @@
 						name: rule.id + '_data_cbx',
 						checked: enabled == true,
 					});
-					container.prepend(input);
+					
+					// switch dei filtri delle ov spostato a sx 
+					container.before(input);
+					
 					// '<input class="toggleswitch" data-onstyle="success" data-toggle="toggle" type="checkbox" '+
 					// 'id="'+rule.id+'_cbx" name="'+rule.id+'_data_cbx" '+(enabled == true ? 'checked="checked"' : '') +' ></input>');
 					// $(".toggleswitch").bootstrapToggle({size: "mini"});
