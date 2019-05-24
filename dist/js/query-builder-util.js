@@ -540,6 +540,20 @@
 						var value = this.checked;
 						if (!prule.data) prule.data = {};
 						prule.data['enabled'] = value;
+						
+						var operator = $(this).parent().parent().parent().find('.rule-operator-container > select');
+						var inputvalues = $(this).parent().parent().parent().find('.rule-value-container > input ');
+						var selectvalues = $(this).parent().parent().parent().find('.rule-value-container > select ');
+						if (value) {
+							operator.removeAttr("readonly");
+							inputvalues.removeAttr("readonly");
+							selectvalues.removeAttr("readonly");
+						} else {
+							operator.attr("readonly", "readonly");
+							inputvalues.attr("readonly", "readonly");
+							selectvalues.attr("readonly", "readonly");
+						}
+						
 						if (!extra && value && prule.parent) {
 							var pgroup = prule.parent;
 							if (pgroup.level > 1) {
@@ -844,13 +858,13 @@
 					}
 				}
 				var elem;
-				elem = $('<input>', { name: name + '_2' });
+				elem = $('<input>', { class: 'form-control', name: name + '_2' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
-				elem = $('<input>', { name: name + '_3', type: 'number' });
+				elem = $('<input>', { class: 'form-control', name: name + '_3', type: 'number' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
-				var select = $('<select>', { name: name + '_4' });
+				var select = $('<select>', { class: 'form-control', name: name + '_4' });
 				for (var p in { 'day': 0, 'days': 0, 'week': 0, 'month': 0 }) {
 					var o = $('<option>', { value: p }).text(qb.translate('periods', p));
 					select.append(o);
@@ -858,7 +872,7 @@
 				select.on('change', changePeriod);
 				select.on('change', notifyChanges);
 				elems.append(select);
-				elem = $('<input>', { name: name + '_5', type: 'number' });
+				elem = $('<input>', { class: 'form-control', name: name + '_5', type: 'number' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
 				handleHideShowDatePicker(elems, operator);
