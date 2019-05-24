@@ -357,7 +357,7 @@
 			});
 
 			$(element).on('afterCreateRuleInput.queryBuilder', function (event, rule) {
-				addRuleToggle(event, rule);
+				
 				if (localOptions.labels.visible === true) {
 					var label = $('#' + rule.id + '_data');
 					if (label.length == 0) {
@@ -384,7 +384,7 @@
 
 				// $(".toggleswitch").bootstrapToggle({size: "mini"});
 				//$(event.target).find('.rule-operator-container select').trigger('change');
-
+				addRuleToggle(event, rule);
 			});
 
 			function addGroupToggle(event, group) {
@@ -526,9 +526,8 @@
 						name: rule.id + '_data_cbx',
 						checked: enabled == true,
 					});
-					
-					// switch dei filtri delle ov spostato a sx 
-					container.before(input);
+										
+					container.prepend(input);
 					
 					// '<input class="toggleswitch" data-onstyle="success" data-toggle="toggle" type="checkbox" '+
 					// 'id="'+rule.id+'_cbx" name="'+rule.id+'_data_cbx" '+(enabled == true ? 'checked="checked"' : '') +' ></input>');
