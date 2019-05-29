@@ -1,6 +1,6 @@
 {
   "name": "jquery-query-builder-util",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "authors": [
     {
       "name": "Davide Graziosi",
@@ -28,7 +28,7 @@
     "jQuery-QueryBuilder-sql-ext": ">=2.5.2 <2.5.5"
   },
   "resolutions": {
-    "jQuery-QueryBuilder-sql-ext": "2.5.2.7"
+    "jQuery-QueryBuilder-sql-ext": "2.5.2.10"
   },
   "keywords": [
     "jquery",

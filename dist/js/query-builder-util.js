@@ -545,13 +545,13 @@
 						var inputvalues = $(this).parent().parent().parent().find('.rule-value-container > input ');
 						var selectvalues = $(this).parent().parent().parent().find('.rule-value-container > select ');
 						if (value) {
-							operator.removeAttr("readonly");
-							inputvalues.removeAttr("readonly");
-							selectvalues.removeAttr("readonly");
+							operator.removeAttr("disabled");
+							inputvalues.removeAttr("disabled");
+							selectvalues.removeAttr("disabled");
 						} else {
-							operator.attr("readonly", "readonly");
-							inputvalues.attr("readonly", "readonly");
-							selectvalues.attr("readonly", "readonly");
+							operator.attr("disabled", "disabled");
+							inputvalues.attr("disabled", "disabled");
+							selectvalues.attr("disabled", "disabled");
 						}
 						
 						if (!extra && value && prule.parent) {
