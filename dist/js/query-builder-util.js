@@ -338,7 +338,7 @@
 			$(element).on('afterAddGroup.queryBuilder', function (event, group) {
 				if (group.id != group.model.root.id) {
 					if (localOptions.labels.visible === true) {
-						var label = $('#' + group.id + '_data');
+						var label = group.$el.find('#' + group.id + '_data');
 						if (label.length == 0) {
 							addGroupLabel(event, group);
 						}
@@ -359,7 +359,7 @@
 			$(element).on('afterCreateRuleInput.queryBuilder', function (event, rule) {
 				
 				if (localOptions.labels.visible === true) {
-					var label = $('#' + rule.id + '_data');
+					var label = rule.$el.find('#' + rule.id + '_data');
 					if (label.length == 0) {
 						addRuleLabel(event, rule);
 					}
