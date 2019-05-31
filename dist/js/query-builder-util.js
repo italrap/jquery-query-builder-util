@@ -331,8 +331,8 @@
 			});
 
 			$(element).on('afterUpdateRuleValue.queryBuilder', function (event, rule) {
-				$('#' + rule.id + '_cbx').trigger('change');
-				$('#' + rule.id + '_data').trigger('change');
+				$(element).find('#' + rule.id + '_cbx').trigger('change');
+				$(element).find('#' + rule.id + '_data').trigger('change');
 			});
 
 			$(element).on('afterAddGroup.queryBuilder', function (event, group) {
@@ -422,9 +422,12 @@
 						var oldValue = pgroup.data['enabled'];
 						pgroup.data['enabled'] = value;
 						if (!extra && value != oldValue) {
-							$("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
-							//$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").change();
-							$("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").trigger("change", { group: pgroup });
+							$(element).find("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']")
+								.prop('checked', value)
+								.trigger("change", { group: pgroup });
+							// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
+							// //$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").change();
+							// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").trigger("change", { group: pgroup });
 						}
 						/* DA CAPIRE
 						if (!extra && value && pgroup.parent) {
@@ -559,8 +562,11 @@
 							if (pgroup.level > 1) {
 								if (!pgroup.data) pgroup.data = {};
 								pgroup.data['enabled'] = value;
-								$("#" + pgroup.id + '_cbx').prop('checked', value);
-								$("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								$(element).find("#" + pgroup.id + '_cbx')
+									.prop('checked', value)
+									.trigger("change", { rule: rule });
+								// $("#" + pgroup.id + '_cbx').prop('checked', value);
+								// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
 							}
 						} else if (!extra && !value && prule.parent) {
 							var pgroup = prule.parent;
@@ -573,8 +579,11 @@
 								});
 								if (!pgroup.data) pgroup.data = {};
 								pgroup.data['enabled'] = groupOn;
-								$("#" + pgroup.id + '_cbx').prop('checked', groupOn);
-								$("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								$(element).find("#" + pgroup.id + '_cbx')
+									.prop('checked', groupOn)
+									.trigger("change", { rule: rule });
+								// $("#" + pgroup.id + '_cbx').prop('checked', groupOn);
+								// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
 							}
 
 						}
@@ -664,8 +673,8 @@
 				});*/
 
 
-				$('#' + rule.id + '_cbx').trigger('change');
-				$('#' + rule.id + '_data').trigger('change');
+				$(element).find('#' + rule.id + '_cbx').trigger('change');
+				$(element).find('#' + rule.id + '_data').trigger('change');
 			}
 		}
 
