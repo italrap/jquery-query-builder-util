@@ -243,6 +243,8 @@
 		 * @param {*} lang_code 
 		 */
 		function createQueryBuilder(element, filters, options, lang_code) {
+			if (element.data('queryBuilder')) // evito doppia inizializzazione
+				return;
 			var defaultFilter = { "id": "1", "field": "1", "type": "integer", "label": "-----", "input": "number", "unique": true };
 			// filters.push(defaultFilter);
 
@@ -331,8 +333,8 @@
 			});
 
 			$(element).on('afterUpdateRuleValue.queryBuilder', function (event, rule) {
-				$(element).find('#' + rule.id + '_cbx').trigger('change');
-				$(element).find('#' + rule.id + '_data').trigger('change');
+				rule.$el.find('#' + rule.id + '_cbx').trigger('change');
+				rule.$el.find('#' + rule.id + '_data').trigger('change');
 			});
 
 			$(element).on('afterAddGroup.queryBuilder', function (event, group) {
@@ -396,7 +398,7 @@
 				}
 
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
-				var toggle = container.find('.toggleswitch');
+				var toggle = container.parent().find('#'+group.id + '_cbx.toggleswitch');
 				if (!toggle || !toggle.length) {
 					var input = $('<input>', {
 						class: 'toggleswitch',
@@ -420,42 +422,40 @@
 						var value = this.checked;
 						if (!pgroup.data) pgroup.data = {};
 						var oldValue = pgroup.data['enabled'];
-						pgroup.data['enabled'] = value;
-						if (!extra && value != oldValue) {
-							$(element).find("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']")
-								.prop('checked', value)
-								.trigger("change", { group: pgroup });
-							// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
-							// //$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").change();
-							// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").trigger("change", { group: pgroup });
-						}
-						/* DA CAPIRE
-						if (!extra && value && pgroup.parent) {
-							var pgroup = pgroup.parent;
-							if (pgroup.level > 1){
-						if (!pgroup.data) pgroup.data = {};
-						pgroup.data['enabled'] = value;
-								$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").prop('checked',value);
-						$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").trigger("change", {group: pgroup});
+						if(value != oldValue){
+							pgroup.data['enabled'] = value;
+							if (!extra) {
+								pgroup.$el.find(" input:checkbox[id!='" + pgroup.id + "_cbx']")
+									.prop('checked', value)
+									.trigger("change", { group: pgroup });
+								// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
+								// //$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").change();
+								// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").trigger("change", { group: pgroup });
 							}
 
-							} else if (!extra && !value && pgroup.parent) {
-							var pgroup = pgroup.parent;
-							var groupOn = false;
-							if (pgroup.level > 1) {
-								pgroup.rules.forEach(function(r){
-									if (r.data['enabled'] == true) {
-										groupOn = true; 
+							var parentGroup = pgroup.parent;
+							if((!extra || extra.propagateToParent===true) && parentGroup && parentGroup.level > 1){
+								var groupOn = value;
+								if (!groupOn) {
+									parentGroup.rules.forEach(function (r) {
+										if (r.data && r.data['enabled'] == true) {
+											groupOn = true;
 										}
-								});
-								if (!pgroup.data) pgroup.data = {};
-								pgroup.data['enabled'] = groupOn;
-										$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").prop('checked',groupOn);
-								$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").trigger("change", {group: pgroup});
+									});
+								}
+								if (!parentGroup.data) parentGroup.data = {};
+								var oldGroupValue = parentGroup.data['enabled'];
+								if(oldGroupValue!==groupOn){
+									parentGroup.data['enabled'] = groupOn;
+									parentGroup.$el.find("#" + parentGroup.id + '_cbx')
+										.prop('checked', groupOn)
+										.trigger("change", { group: pgroup, propagateToParent:true });
+									// $("#" + pgroup.id + '_cbx').prop('checked', value);
+									// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								}
 							}
-							}*/
-
-						$(element).queryBuilder('trigger', 'afterUpdateGroupEnabled');
+							$(element).queryBuilder('trigger', 'afterUpdateGroupEnabled', pgroup, value);
+						}
 					});
 					// $(".toggleswitch").bootstrapToggle({size: "mini"});
 				}
@@ -513,7 +513,7 @@
 				if (localOptions.toggle.visible !== true)
 					return;
 				var container = $(rule.$el).find(".rule-filter-container");
-				var toggle = container.find('.toggleswitch');
+				var toggle = container.find('#'+rule.id + '_cbx.toggleswitch');
 				if (!toggle || !toggle.length) {
 					var enabled = false;
 					if (rule.data || rule.filter.data) {
@@ -542,11 +542,12 @@
 
 						var value = this.checked;
 						if (!prule.data) prule.data = {};
+						var oldValue = prule.data['enabled'];
 						prule.data['enabled'] = value;
 						
-						var operator = $(this).parent().parent().parent().find('.rule-operator-container > select');
-						var inputvalues = $(this).parent().parent().parent().find('.rule-value-container > input ');
-						var selectvalues = $(this).parent().parent().parent().find('.rule-value-container > select ');
+						var operator = prule.$el.find('.rule-operator-container > select');
+						var inputvalues = prule.$el.find('.rule-value-container > input ');
+						var selectvalues = prule.$el.find('.rule-value-container > select ');
 						if (value) {
 							operator.removeAttr("disabled");
 							inputvalues.removeAttr("disabled");
@@ -557,37 +558,30 @@
 							selectvalues.attr("disabled", "disabled");
 						}
 						
-						if (!extra && value && prule.parent) {
+						if(oldValue!==value){
 							var pgroup = prule.parent;
-							if (pgroup.level > 1) {
+							if(!extra && pgroup && pgroup.level > 1){
+								var groupOn = value;
+								if (!groupOn) {
+									pgroup.rules.forEach(function (r) {
+										if (r.data && r.data['enabled'] == true) {
+											groupOn = true;
+										}
+									});
+								}
 								if (!pgroup.data) pgroup.data = {};
-								pgroup.data['enabled'] = value;
-								$(element).find("#" + pgroup.id + '_cbx')
-									.prop('checked', value)
-									.trigger("change", { rule: rule });
-								// $("#" + pgroup.id + '_cbx').prop('checked', value);
-								// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								var oldGroupValue = pgroup.data['enabled'];
+								if(oldGroupValue!==groupOn){
+									pgroup.data['enabled'] = groupOn;
+									pgroup.$el.find("#" + pgroup.id + '_cbx')
+										.prop('checked', groupOn)
+										.trigger("change", { rule: rule , propagateToParent:true });
+									// $("#" + pgroup.id + '_cbx').prop('checked', value);
+									// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								}
 							}
-						} else if (!extra && !value && prule.parent) {
-							var pgroup = prule.parent;
-							var groupOn = false;
-							if (pgroup.level > 1) {
-								pgroup.rules.forEach(function (r) {
-									if (r.data && r.data['enabled'] == true) {
-										groupOn = true;
-									}
-								});
-								if (!pgroup.data) pgroup.data = {};
-								pgroup.data['enabled'] = groupOn;
-								$(element).find("#" + pgroup.id + '_cbx')
-									.prop('checked', groupOn)
-									.trigger("change", { rule: rule });
-								// $("#" + pgroup.id + '_cbx').prop('checked', groupOn);
-								// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
-							}
-
+							$(element).queryBuilder('trigger', 'afterUpdateRuleEnabled', prule, value);
 						}
-						$(element).queryBuilder('trigger', 'afterUpdateRuleEnabled');
 					});
 
 				}
@@ -632,6 +626,8 @@
 
 					this.style.width = autowidth(this);
 				});
+				rule.$el.find('#' + rule.id + '_cbx').trigger('change');
+				input.trigger('change');
 
 				// 	$('#'+rule.id+'_cbx').change({rule: rule}, function (parameters, extra) {
 				// 		var prule = parameters.data.rule;
@@ -673,8 +669,8 @@
 				});*/
 
 
-				$(element).find('#' + rule.id + '_cbx').trigger('change');
-				$(element).find('#' + rule.id + '_data').trigger('change');
+				// $(element).find('#' + rule.id + '_cbx').trigger('change');
+				// $(element).find('#' + rule.id + '_data').trigger('change');
 			}
 		}
 
