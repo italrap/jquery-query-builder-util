@@ -243,6 +243,8 @@
 		 * @param {*} lang_code 
 		 */
 		function createQueryBuilder(element, filters, options, lang_code) {
+			if (element.data('queryBuilder')) // evito doppia inizializzazione
+				return;
 			var defaultFilter = { "id": "1", "field": "1", "type": "integer", "label": "-----", "input": "number", "unique": true };
 			// filters.push(defaultFilter);
 
