@@ -144,7 +144,9 @@
 			createQueryBuilder: createQueryBuilder,
 			defaultOptions: {
 				labels: { visible: true, readonly: true },
-				toggle: { visible: true },
+				toggle: { visible: true,
+					hide : { operator: true, values: true },
+				 },
 			},
 			globalConfig: function (options) {
 				this.defaultOptions = angular.merge(this.defaultOptions, options);
@@ -548,14 +550,24 @@
 						var operator = prule.$el.find('.rule-operator-container > select');
 						var inputvalues = prule.$el.find('.rule-value-container > input ');
 						var selectvalues = prule.$el.find('.rule-value-container > select ');
+						var operatorContainer = prule.$el.find('.rule-operator-container');
+						var valueContainer = prule.$el.find('.rule-value-container');
 						if (value) {
 							operator.removeAttr("disabled");
 							inputvalues.removeAttr("disabled");
 							selectvalues.removeAttr("disabled");
+							if(localOptions.toggle.hide.values)
+								valueContainer.show();
+							if(localOptions.toggle.hide.operator)
+								operatorContainer.show();
 						} else {
 							operator.attr("disabled", "disabled");
 							inputvalues.attr("disabled", "disabled");
 							selectvalues.attr("disabled", "disabled");
+							if(localOptions.toggle.hide.values)
+								valueContainer.hide();
+							if(localOptions.toggle.hide.operator)
+								operatorContainer.hide();
 						}
 						
 						if(oldValue!==value){
