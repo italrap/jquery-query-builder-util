@@ -165,7 +165,7 @@
 			defaultOptions: {
 				labels: { visible: true, readonly: true },
 				toggle: { visible: true,
-					hide : { operator: true, values: true, group: true, },
+					hide : { operator: true, values: true },
 				 },
 			},
 			globalConfig: function (options) {
@@ -564,12 +564,6 @@
 									parentGroup.rules.forEach(function (r) {
 										if (r.data && r.data['enabled'] == true) {
 											groupOn = true;
-										groupOn = true; 
-											groupOn = true;
-										groupOn = true; 
-											groupOn = true;
-										groupOn = true; 
-											groupOn = true;
 										}
 									});
 								}
@@ -583,9 +577,6 @@
 									// $("#" + pgroup.id + '_cbx').prop('checked', value);
 									// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
 								}
-							}
-							if(localOptions.toggle.hide.group){
-								// var groupElements = 
 							}
 							$(element).queryBuilder('trigger', 'afterUpdateGroupEnabled', pgroup, value);
 						}
@@ -812,6 +803,7 @@
 				pgroup.rules.forEach(function(r){
 					console.log("r.data: "+r.data);
 				});*/
+
 			}
 		}
 
