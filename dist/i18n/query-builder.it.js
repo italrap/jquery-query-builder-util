@@ -26,6 +26,7 @@
       ignore_case: 'ignore case',
       ignore_case_on: 'Yes',
       ignore_case_off: 'No',
+      separator: ' [separator=\',\']',
     },
   }
 
@@ -110,6 +111,7 @@
       ignore_case: 'Ignora maiusc.',
       ignore_case_on: 'Si',
       ignore_case_off: 'No',
+      separator: ' [separatore=\',\']',
     },
     // 'invert': 'Invert',
     // 'NOT': 'NOT'

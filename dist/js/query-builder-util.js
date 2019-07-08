@@ -136,6 +136,26 @@
 			"PRIORITY" : { "0":"BASSA", "1":"MEDIA", "2":"ALTA", "3":"BACKLOG"}
 			};*/
 
+		var customTemplates = {
+			operatorSelect :'\
+{{? it.operators.length === 1 }} \
+<span>\
+{{= it.translate("operators", it.operators[0].type) }} \
+</span> \
+{{?}} \
+{{ var optgroup = null; }}\
+<select class="form-control {{? it.operators.length === 1 }}hide{{?}}" name="{{= it.rule.id }}_operator"> \
+{{~ it.operators: operator }} \
+{{? optgroup !== operator.optgroup }} \
+{{? optgroup !== null }}</optgroup>{{?}} \
+{{? (optgroup = operator.optgroup) !== null }} \
+<optgroup label="{{= it.translate(it.settings.optgroups[optgroup]) }}"> \
+{{?}} \
+{{?}} \
+<option value="{{= operator.type }}" {{? operator.icon}}data-icon="{{= operator.icon}}"{{?}}>{{= it.translate("operators", operator.type) }}{{? it.rule.filter.list!==true && operator.multiple===true }}{{= it.translate("labels", "separator") }}{{?}}</option> \
+{{~}} \
+{{? optgroup !== null }}</optgroup>{{?}} \
+</select>'};
 
 		var service = {
 			getQueryBuilderFilters: getQueryBuilderFilters,
