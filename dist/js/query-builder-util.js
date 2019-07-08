@@ -136,6 +136,26 @@
 			"PRIORITY" : { "0":"BASSA", "1":"MEDIA", "2":"ALTA", "3":"BACKLOG"}
 			};*/
 
+		var customTemplates = {
+			operatorSelect :'\
+{{? it.operators.length === 1 }} \
+<span>\
+{{= it.translate("operators", it.operators[0].type) }} \
+</span> \
+{{?}} \
+{{ var optgroup = null; }}\
+<select class="form-control {{? it.operators.length === 1 }}hide{{?}}" name="{{= it.rule.id }}_operator"> \
+{{~ it.operators: operator }} \
+{{? optgroup !== operator.optgroup }} \
+{{? optgroup !== null }}</optgroup>{{?}} \
+{{? (optgroup = operator.optgroup) !== null }} \
+<optgroup label="{{= it.translate(it.settings.optgroups[optgroup]) }}"> \
+{{?}} \
+{{?}} \
+<option value="{{= operator.type }}" {{? operator.icon}}data-icon="{{= operator.icon}}"{{?}}>{{= it.translate("operators", operator.type) }}{{? it.rule.filter.list!==true && operator.multiple===true }}{{= it.translate("labels", "separator") }}{{?}}</option> \
+{{~}} \
+{{? optgroup !== null }}</optgroup>{{?}} \
+</select>'};
 
 		var service = {
 			getQueryBuilderFilters: getQueryBuilderFilters,
@@ -144,7 +164,9 @@
 			createQueryBuilder: createQueryBuilder,
 			defaultOptions: {
 				labels: { visible: true, readonly: true },
-				toggle: { visible: true },
+				toggle: { visible: true,
+					hide : { operator: true, values: true, group: true, },
+				 },
 			},
 			globalConfig: function (options) {
 				this.defaultOptions = angular.merge(this.defaultOptions, options);
@@ -243,6 +265,8 @@
 		 * @param {*} lang_code 
 		 */
 		function createQueryBuilder(element, filters, options, lang_code) {
+			if (element.data('queryBuilder')) // evito doppia inizializzazione
+				return;
 			var defaultFilter = { "id": "1", "field": "1", "type": "integer", "label": "-----", "input": "number", "unique": true };
 			// filters.push(defaultFilter);
 
@@ -274,6 +298,7 @@
 				, allow_empty: true
 				, saveNativeRules: true
 				, lang: lang
+				, templates: customTemplates
 				/*, iconUp: 'glyphicon glyphicon-minus', iconDown: 'glyphicon glyphicon-plus', namedGroups: false*/
 			}, this.defaultOptions, options);
 			if (localOptions.sortable) {
@@ -285,7 +310,10 @@
 			function autowidth(el) {
 				return (el.value.length == 0 ? "16px;" : (el.value.length + 1) * 8) + "px";
 			}
-
+			function unescapeLabel(l){
+				if(l)
+					return $('<div>').html(l).text();
+			}
 
 			//$($(element).find('.rules-group-container').find('button').get(2)).hide();
 			/*$(element).prepend('<script >function autowidth(el) {return ((el.value.length + 1)*8)+"px";} ' +
@@ -330,15 +358,21 @@
 				}
 			});
 
+			// $(element).on('getRuleOperatorSelect.queryBuilder.filter', function ( event, rule, operators) {
+			// 	var h = event.value;
+			// 	return h;
+			// 	//GIX
+			// });
+
 			$(element).on('afterUpdateRuleValue.queryBuilder', function (event, rule) {
-				$('#' + rule.id + '_cbx').trigger('change');
-				$('#' + rule.id + '_data').trigger('change');
+				rule.$el.find('#' + rule.id + '_cbx').trigger('change');
+				rule.$el.find('#' + rule.id + '_data').trigger('change');
 			});
 
 			$(element).on('afterAddGroup.queryBuilder', function (event, group) {
 				if (group.id != group.model.root.id) {
 					if (localOptions.labels.visible === true) {
-						var label = $('#' + group.id + '_data');
+						var label = group.$el.find('#' + group.id + '_data');
 						if (label.length == 0) {
 							addGroupLabel(event, group);
 						}
@@ -355,16 +389,108 @@
 				var b = rule.$el.find("[name$=_filter]");
 				b.focus();
 			});
+			
+			//retrocompatibilità operatori *_ic
+			$(element).on('setRules.queryBuilder.filter', function (event, options) {
+				var re = /(\w+)_ic/;
+				function change_ic_Rules(rules) {
+					if (rules.length > 0) {
+						for (var index = rules.length - 1; index >= 0; index--) {
+							var rule = rules[index];
+							if (rule.operator) {
+								var operator = rule.operator.replace(re, function(match, s1){
+									return s1;
+								});
+								if(operator!==rule.operator){
+									rule.data.ignore_case=true;
+									rule.operator=operator;
+								} 
+							} else if (rule.rules) {
+								change_ic_Rules(rule.rules);
+							}
+						}
+					}
+				}
+				
+				change_ic_Rules(event.value.rules);
+			
+				return event.value;
+			});
 
+			// $(element).on('getRuleValue.queryBuilder.filter', function (event, rule) {
+			// 	if(rule.data && rule.data.ignore_case===true){
+			// 		console.log('getRuleValue.queryBuilder');
+			// 		var oldVal= event.value;
+			// 		// event.value={value:oldVal, ignore_case: true, };
+			// 	}
+
+			// 	return event.value;
+			// });
+
+			$(element).on('afterUpdateRuleFilter.queryBuilder', function (event, rule, previousFilter) {
+				var previousOperator;
+				$(element).queryBuilder('trigger', 'afterUpdateRuleOperator', rule, previousOperator);
+			});
+
+			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event, rule, previousOperator) {
+				var ruleContainer=rule.$el.find('.rule-operator-container');
+				var icContainer = ruleContainer.find('.ignore_case_container');
+				if(rule.operator.enable_ic===true){
+					if(rule.data.ignore_case===undefined)
+						rule.data.ignore_case = false;
+				} else {
+					delete rule.data.ignore_case;
+				}
+				if(rule.filter.type==='string' && !rule.filter.values && rule.operator.enable_ic===true){
+					if(icContainer.length ===0 ){
+						var icContainer=$('<span>',{
+							class: 'ignore_case_container',
+						});
+
+						var label = element.queryBuilder('translate', 'labels', 'ignore_case');
+						icContainer.text(label);
+
+						var input = $('<input>', {
+							class: '',
+							'data-onstyle': "success",
+							'data-toggle': "toggle",
+							type: "checkbox",
+							id: rule.id + '_igncase_cbx',
+							name: rule.id + '_data_igncase_cbx',
+							checked: rule.data.ignore_case===true,
+						});
+						icContainer.append(input);
+						ruleContainer.append(icContainer);
+						// ruleContainer.append(input);
+						input.bootstrapToggle({ size: "mini", style: 'ignore_case_cb', 
+						   on:element.queryBuilder('translate', 'labels', 'ignore_case_on'),
+						   off:element.queryBuilder('translate', 'labels', 'ignore_case_off'),
+						});
+						input.change({ rule: rule }, function (parameters) {
+							var prule = parameters.data.rule;
+							var value = this.checked;
+							if (!prule.data) prule.data = {};
+							prule.data['ignore_case'] = value;
+						});
+					}
+
+				} else {
+					icContainer.remove();
+				}
+				console.log(rule);
+			});
+			
+			
 			$(element).on('afterCreateRuleInput.queryBuilder', function (event, rule) {
-				addRuleToggle(event, rule);
+				
 				if (localOptions.labels.visible === true) {
-					var label = $('#' + rule.id + '_data');
+					var label = rule.$el.find('#' + rule.id + '_data');
 					if (label.length == 0) {
 						addRuleLabel(event, rule);
 					}
 					else {
 						var labelVal = (rule.filter.label ? rule.filter.label : '');
+						labelVal=unescapeLabel(labelVal);
 						console.log(labelVal);
 						$(label[0]).val(labelVal);
 						if (!rule.data) rule.data = {};
@@ -384,7 +510,7 @@
 
 				// $(".toggleswitch").bootstrapToggle({size: "mini"});
 				//$(event.target).find('.rule-operator-container select').trigger('change');
-
+				addRuleToggle(event, rule);
 			});
 
 			function addGroupToggle(event, group) {
@@ -396,7 +522,7 @@
 				}
 
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
-				var toggle = container.find('.toggleswitch');
+				var toggle = container.parent().find('#'+group.id + '_cbx.toggleswitch');
 				if (!toggle || !toggle.length) {
 					var input = $('<input>', {
 						class: 'toggleswitch',
@@ -420,39 +546,49 @@
 						var value = this.checked;
 						if (!pgroup.data) pgroup.data = {};
 						var oldValue = pgroup.data['enabled'];
-						pgroup.data['enabled'] = value;
-						if (!extra && value != oldValue) {
-							$("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
-							//$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").change();
-							$("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").trigger("change", { group: pgroup });
-						}
-						/* DA CAPIRE
-						if (!extra && value && pgroup.parent) {
-							var pgroup = pgroup.parent;
-							if (pgroup.level > 1){
-						if (!pgroup.data) pgroup.data = {};
-						pgroup.data['enabled'] = value;
-								$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").prop('checked',value);
-						$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").trigger("change", {group: pgroup});
+						if(value != oldValue){
+							pgroup.data['enabled'] = value;
+							if (!extra) {
+								pgroup.$el.find(" input:checkbox[id!='" + pgroup.id + "_cbx']")
+									.prop('checked', value)
+									.trigger("change", { group: pgroup });
+								// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
+								// //$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").change();
+								// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").trigger("change", { group: pgroup });
 							}
 
-							} else if (!extra && !value && pgroup.parent) {
-							var pgroup = pgroup.parent;
-							var groupOn = false;
-							if (pgroup.level > 1) {
-								pgroup.rules.forEach(function(r){
-									if (r.data['enabled'] == true) {
+							var parentGroup = pgroup.parent;
+							if((!extra || extra.propagateToParent===true) && parentGroup && parentGroup.level > 1){
+								var groupOn = value;
+								if (!groupOn) {
+									parentGroup.rules.forEach(function (r) {
+										if (r.data && r.data['enabled'] == true) {
+											groupOn = true;
 										groupOn = true; 
+											groupOn = true;
+										groupOn = true; 
+											groupOn = true;
+										groupOn = true; 
+											groupOn = true;
 										}
-								});
-								if (!pgroup.data) pgroup.data = {};
-								pgroup.data['enabled'] = groupOn;
-										$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").prop('checked',groupOn);
-								$("#"+pgroup.id +" input:checkbox[id!='"+pgroup.id+"_cbx']").trigger("change", {group: pgroup});
+									});
+								}
+								if (!parentGroup.data) parentGroup.data = {};
+								var oldGroupValue = parentGroup.data['enabled'];
+								if(oldGroupValue!==groupOn){
+									parentGroup.data['enabled'] = groupOn;
+									parentGroup.$el.find("#" + parentGroup.id + '_cbx')
+										.prop('checked', groupOn)
+										.trigger("change", { group: pgroup, propagateToParent:true });
+									// $("#" + pgroup.id + '_cbx').prop('checked', value);
+									// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								}
 							}
-							}*/
-
-						$(element).queryBuilder('trigger', 'afterUpdateGroupEnabled');
+							if(localOptions.toggle.hide.group){
+								// var groupElements = 
+							}
+							$(element).queryBuilder('trigger', 'afterUpdateGroupEnabled', pgroup, value);
+						}
 					});
 					// $(".toggleswitch").bootstrapToggle({size: "mini"});
 				}
@@ -462,6 +598,7 @@
 				var label = '';
 				if (group.data) {
 					label = (group.data && group.data['label'] != undefined ? group.data['label'] : '');
+					label=unescapeLabel(label);
 				}
 				var labellen = ((label ? label.length : "etichetta".length) + 1) * 8;
 
@@ -510,7 +647,7 @@
 				if (localOptions.toggle.visible !== true)
 					return;
 				var container = $(rule.$el).find(".rule-filter-container");
-				var toggle = container.find('.toggleswitch');
+				var toggle = container.find('#'+rule.id + '_cbx.toggleswitch');
 				if (!toggle || !toggle.length) {
 					var enabled = false;
 					if (rule.data || rule.filter.data) {
@@ -526,7 +663,9 @@
 						name: rule.id + '_data_cbx',
 						checked: enabled == true,
 					});
+										
 					container.prepend(input);
+					
 					// '<input class="toggleswitch" data-onstyle="success" data-toggle="toggle" type="checkbox" '+
 					// 'id="'+rule.id+'_cbx" name="'+rule.id+'_data_cbx" '+(enabled == true ? 'checked="checked"' : '') +' ></input>');
 					// $(".toggleswitch").bootstrapToggle({size: "mini"});
@@ -537,32 +676,56 @@
 
 						var value = this.checked;
 						if (!prule.data) prule.data = {};
+						var oldValue = prule.data['enabled'];
 						prule.data['enabled'] = value;
-						if (!extra && value && prule.parent) {
-							var pgroup = prule.parent;
-							if (pgroup.level > 1) {
-								if (!pgroup.data) pgroup.data = {};
-								pgroup.data['enabled'] = value;
-								$("#" + pgroup.id + '_cbx').prop('checked', value);
-								$("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
-							}
-						} else if (!extra && !value && prule.parent) {
-							var pgroup = prule.parent;
-							var groupOn = false;
-							if (pgroup.level > 1) {
-								pgroup.rules.forEach(function (r) {
-									if (r.data && r.data['enabled'] == true) {
-										groupOn = true;
-									}
-								});
-								if (!pgroup.data) pgroup.data = {};
-								pgroup.data['enabled'] = groupOn;
-								$("#" + pgroup.id + '_cbx').prop('checked', groupOn);
-								$("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
-							}
-
+						
+						var operator = prule.$el.find('.rule-operator-container > select');
+						var inputvalues = prule.$el.find('.rule-value-container > input ');
+						var selectvalues = prule.$el.find('.rule-value-container > select ');
+						var operatorContainer = prule.$el.find('.rule-operator-container');
+						var valueContainer = prule.$el.find('.rule-value-container');
+						if (value) {
+							operator.removeAttr("disabled");
+							inputvalues.removeAttr("disabled");
+							selectvalues.removeAttr("disabled");
+							if(localOptions.toggle.hide.values)
+								valueContainer.show();
+							if(localOptions.toggle.hide.operator)
+								operatorContainer.show();
+						} else {
+							operator.attr("disabled", "disabled");
+							inputvalues.attr("disabled", "disabled");
+							selectvalues.attr("disabled", "disabled");
+							if(localOptions.toggle.hide.values)
+								valueContainer.hide();
+							if(localOptions.toggle.hide.operator)
+								operatorContainer.hide();
 						}
-						$(element).queryBuilder('trigger', 'afterUpdateRuleEnabled');
+						
+						if(oldValue!==value){
+							var pgroup = prule.parent;
+							if(!extra && pgroup && pgroup.level > 1){
+								var groupOn = value;
+								if (!groupOn) {
+									pgroup.rules.forEach(function (r) {
+										if (r.data && r.data['enabled'] == true) {
+											groupOn = true;
+										}
+									});
+								}
+								if (!pgroup.data) pgroup.data = {};
+								var oldGroupValue = pgroup.data['enabled'];
+								if(oldGroupValue!==groupOn){
+									pgroup.data['enabled'] = groupOn;
+									pgroup.$el.find("#" + pgroup.id + '_cbx')
+										.prop('checked', groupOn)
+										.trigger("change", { rule: rule , propagateToParent:true });
+									// $("#" + pgroup.id + '_cbx').prop('checked', value);
+									// $("#" + pgroup.id + '_cbx').trigger("change", { rule: rule });
+								}
+							}
+							$(element).queryBuilder('trigger', 'afterUpdateRuleEnabled', prule, value);
+						}
 					});
 
 				}
@@ -575,6 +738,7 @@
 					//enabled = ( rule.filter.data['enabled'] != undefined ? rule.filter.data['enabled'] : (rule.data ? rule.data['enabled'] : true));
 					label = rule.filter.data['label'] != undefined ? rule.filter.data['label'] : (rule.data && rule.data['label'] != "" && rule.data['label'] != undefined ? rule.data['label'] : (rule.filter.label ? rule.filter.label : ''));
 				}
+				label=unescapeLabel(label);
 				var labellen = ((label ? label.length : "etichetta".length) + 1) * 8;
 				var container = $(rule.$el).find(".rule-filter-container");
 				var labelObj = $('<label>', {
@@ -607,6 +771,8 @@
 
 					this.style.width = autowidth(this);
 				});
+				rule.$el.find('#' + rule.id + '_cbx').trigger('change');
+				input.trigger('change');
 
 				// 	$('#'+rule.id+'_cbx').change({rule: rule}, function (parameters, extra) {
 				// 		var prule = parameters.data.rule;
@@ -646,10 +812,6 @@
 				pgroup.rules.forEach(function(r){
 					console.log("r.data: "+r.data);
 				});*/
-
-
-				$('#' + rule.id + '_cbx').trigger('change');
-				$('#' + rule.id + '_data').trigger('change');
 			}
 		}
 
@@ -711,8 +873,8 @@
 				is_not_null: { op: 'IS NOT NULL' },
 				last_n_minutes: {
 					op: 'BETWEEN ?', sep: ' AND ',
-					sqlFn: function (values) {
-						return "BETWEEN (SYSDATE - INTERVAL '" + values[0] + "' minute) AND SYSDATE";
+					sqlFn: function (value) {
+						return "BETWEEN (SYSDATE - INTERVAL '" + value + "' minute) AND SYSDATE";
 					}
 				},
 				period: {
@@ -733,55 +895,51 @@
 				},
 				before_last_n_minutes: {
 					op: '< ?',
-					sqlFn: function (values) {
-						return "< (SYSDATE - INTERVAL '" + values[0] + "' minute)";
+					sqlFn: function (value) {
+						return "< (SYSDATE - INTERVAL '" + value + "' minute)";
 					}
 				},
 				before_last_n_days: {
 					op: '< ?',
-					sqlFn: function (values) {
-						return "< (SYSDATE - INTERVAL '" + values[0] + "' day)";
+					sqlFn: function (value) {
+						return "< (SYSDATE - INTERVAL '" + value + "' day)";
 					}
 				},
+				is: { op: 'IN(?)', sep: ', ' ,
+                      sqlFn: function (value) {
+                        return "IN ("+value+")";
+                      }
+				}
 			};
 		}
 
 		function getQueryBuilderOperators() {
 			return [
-				{ type: 'equal', nb_inputs: 1, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'equal_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_equal', nb_inputs: 1, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'not_equal_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'in', nb_inputs: 1, multiple: true, apply_to: ['string', 'number', 'datetime'] },
-				{ type: 'in_ic', nb_inputs: 1, multiple: true, apply_to: ['string'] },
-				{ type: 'not_in', nb_inputs: 1, multiple: true, apply_to: ['string', 'number', 'datetime'] },
-				{ type: 'not_in_ic', nb_inputs: 1, multiple: true, apply_to: ['string'] },
-				{ type: 'less', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'less_or_equal', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'greater', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'greater_or_equal', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'between', nb_inputs: 2, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'not_between', nb_inputs: 2, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'begins_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'begins_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_begins_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_begins_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'contains', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'contains_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_contains', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_contains_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'ends_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'ends_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_ends_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_ends_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'is_empty', nb_inputs: 0, multiple: false, apply_to: ['string'] },
-				{ type: 'is_not_empty', nb_inputs: 0, multiple: false, apply_to: ['string'] },
-				{ type: 'is_null', nb_inputs: 0, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'is_not_null', nb_inputs: 0, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'last_n_minutes', nb_inputs: 1, multiple: true, apply_to: ['datetime'] },
-				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
-				{ type: 'before_last_n_days', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
-				{ type: 'period', nb_inputs: 1, multiple: true, apply_to: ['datetime'] }
+				{ type: 'equal',                 nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'not_equal',             nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'in',                    nb_inputs: 1, multiple: true,  enable_ic: true,  apply_to: ['string', 'number', 'datetime'] },
+				{ type: 'not_in',                nb_inputs: 1, multiple: true,  enable_ic: true,  apply_to: ['string', 'number', 'datetime'] },
+				{ type: 'less',                  nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'less_or_equal',         nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'greater',               nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'greater_or_equal',      nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'between',               nb_inputs: 2, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'not_between',           nb_inputs: 2, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'begins_with',           nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'not_begins_with',       nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'contains',              nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'not_contains',          nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'ends_with',             nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'not_ends_with',         nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'is_empty',              nb_inputs: 0, multiple: false,                   apply_to: ['string'] },
+				{ type: 'is_not_empty',          nb_inputs: 0, multiple: false,                   apply_to: ['string'] },
+				{ type: 'is_null',               nb_inputs: 0, multiple: false,                   apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'is_not_null',           nb_inputs: 0, multiple: false,                   apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'last_n_minutes',        nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
+				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
+				{ type: 'before_last_n_days',    nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
+				{ type: 'period',                nb_inputs: 1, multiple: true,                    apply_to: ['datetime'] },
+				{ type: 'is',                    nb_inputs: 1, multiple: false,                   apply_to: [] }
 			];
 		}
 
@@ -836,13 +994,13 @@
 					}
 				}
 				var elem;
-				elem = $('<input>', { name: name + '_2' });
+				elem = $('<input>', { class: 'form-control', name: name + '_2' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
-				elem = $('<input>', { name: name + '_3', type: 'number' });
+				elem = $('<input>', { class: 'form-control', name: name + '_3', type: 'number' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
-				var select = $('<select>', { name: name + '_4' });
+				var select = $('<select>', { class: 'form-control', name: name + '_4' });
 				for (var p in { 'day': 0, 'days': 0, 'week': 0, 'month': 0 }) {
 					var o = $('<option>', { value: p }).text(qb.translate('periods', p));
 					select.append(o);
@@ -850,7 +1008,7 @@
 				select.on('change', changePeriod);
 				select.on('change', notifyChanges);
 				elems.append(select);
-				elem = $('<input>', { name: name + '_5', type: 'number' });
+				elem = $('<input>', { class: 'form-control', name: name + '_5', type: 'number' });
 				elem.on('change', notifyChanges);
 				elems.append(elem);
 				handleHideShowDatePicker(elems, operator);
@@ -887,6 +1045,7 @@
 				//if (key == 'SOURCE') mapping =  [ "BB", "TX", "CX", "MOB", "RDG"];
 				//if (key == 'SEVERITY') mapping =  { "CLEAR" :  0, "INFO" : 1,"WARNING" : 2,"MINOR" : 3,"MAJOR" : 4 ,"CRITICAL" : 5 };
 				if (mapping || id in decodes || filterDef.REVERSE_LIST) {
+					filter['list']=true;
 					//alert ("Decode "+key+" Type "+type);
 					var valueGetter = function (rule) {
 						var el = rule.$el.find('.rule-value-container select[name$=_0]');
@@ -899,7 +1058,8 @@
 					filter['input'] = "select";
 					filter['valueGetter'] = valueGetter;
 					if (filterDef.REVERSE_LIST) {
-						filter['operators'] = ['is'];
+						// filter.type
+						filter['operators'] = ['is'];// TODO: 'equal'
 						filter['values'] = filterDef.REVERSE_LIST;
 					} else {
 						filter['operators'] = ['equal', 'not_equal', 'in', 'not_in', 'is_null', 'is_not_null'];
@@ -987,9 +1147,9 @@
 						var qb = this;
 						if (rule.operator.nb_inputs > 0) {
 							if (qb.settings.saveNativeRules) {
-								var r = [];
 								switch (rule.operator.type) {
 									case 'period':
+										var r = [];
 										var period = rule.$el.find('.rule-value-container [name$=_4]').val();
 										r.push(period);
 										if (period == 'days') {
@@ -1001,8 +1161,7 @@
 									case 'before_last_n_minutes':
 									case 'before_last_n_days':
 										var val = rule.$el.find('.rule-value-container [name$=_3]').val() || 1;
-										r.push(val);
-										return r;
+										return val;
 								}
 							}
 							if (rule.operator.nb_inputs == 1) {
@@ -1069,7 +1228,49 @@
 						var operator = rule.operator.type;
 						var setted = false;
 
-						if (rule.operator.type == 'less' || rule.operator.type == 'before_last_n_minutes' || rule.operator.type == 'before_last_n_days') {
+						if (operator == 'last_n_minutes' || operator == 'before_last_n_minutes' ||
+							operator == 'before_last_n_days') {
+							var tmpValue = value;
+							if (typeof tmpValue === 'string')
+								tmpValue = Number.parseInt(tmpValue);
+							if (typeof tmpValue === 'number' && tmpValue !== NaN) {
+								// rule.$el.find('.rule-operator-container select').val(operator).trigger('change');
+								//alert("Value Setter minutes :" +minutes[1]);
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(tmpValue).show();
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
+								rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+								return;
+							}
+						} else if (operator == 'period') {
+							var val0 = value[0];
+							switch (val0) {
+								case 'day':
+								case 'week':
+								case 'month':
+									// rule.$el.find('.rule-operator-container select').val(operator).trigger('change');
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val(val0).show().trigger("change");
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+									return;
+								case 'days':
+									var val1 = value[1] || 1;
+									if (typeof val1 === 'string')
+										val1 = Number.parseInt(val1);
+									if (typeof val1 === 'number' && val1 !== NaN) {
+										// rule.$el.find('.rule-operator-container select').val(operator).trigger('change');
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val(val0).show().trigger("change");
+										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(val1).show();
+										return;
+									}
+							}
+						}
+
+						if (rule.operator.type == 'less' || rule.operator.type == 'before_last_n_minutes' ||
+							rule.operator.type == 'before_last_n_days') {
 
 							var minutes = /SYSDATE - INTERVAL '(\d*)' minute/.exec(value);
 							var days = /TRUNC(SYSDATE) - INTERVAL '(\d*)' day/.exec(value);
@@ -1123,68 +1324,56 @@
 								var minutes = /^SYSDATE - INTERVAL '(\d*)' minute$/.exec(val0);
 								var days = /^TRUNC\(SYSDATE\) - INTERVAL '(\d*)' day$/.exec(val0);
 								var val1 = value[1];
-								if (operator == 'period') {
-									switch (val0) {
-										case 'days':
-											rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-											rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-											rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val(val0).show().trigger("change");
-											rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(val1 || 1).show();
-											setted = true;
-											break;
-									}
+								if (val0 == 'SYSDATE - 1' && val1 == 'SYSDATE') {
+									if (operator != 'period')
+										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("day").trigger("change");
+									setted = true;
+								} else if (days && val1 == 'TRUNC(SYSDATE)') {
+									if (operator != 'period')
+										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(days[1]);
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').show();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("days").trigger("change");
+									setted = true;
+								} else if (minutes && val1 == 'SYSDATE') {
+									if (operator != 'last_n_minutes')
+										rule.$el.find('.rule-operator-container select').val('last_n_minutes').trigger('change');
+									//alert("Value Setter minutes :" +minutes[1]);
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(minutes[1]);
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').show();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+									setted = true;
+								} else if (val0 == "TRUNC(SYSDATE,'IW')" && val1 == "TRUNC(SYSDATE,'IW')+7-1/86400") {
+									//week
+									if (operator != 'period')
+										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("week").trigger("change");
+									setted = true;
+								} else if (val0 == "TRUNC(ADD_MONTHS(SYSDATE, -1),'MM')" && val1 == "TRUNC(SYSDATE,'MM')-1/86400") {
+									//month
+									if (operator != 'period')
+										rule.$el.find('.rule-operator-container select').val('period').trigger('change');
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
+									rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("month").trigger("change");
+									setted = true;
 								}
-								if (!setted)
-									if (val0 == 'SYSDATE - 1' && val1 == 'SYSDATE') {
-										if (operator != 'period')
-											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("day").trigger("change");
-										setted = true;
-									} else if (days && val1 == 'TRUNC(SYSDATE)') {
-										if (operator != 'period')
-											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').val(days[1]);
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').show();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("days").trigger("change");
-										setted = true;
-									} else if (minutes && val1 == 'SYSDATE') {
-										if (operator != 'last_n_minutes')
-											rule.$el.find('.rule-operator-container select').val('last_n_minutes').trigger('change');
-										//alert("Value Setter minutes :" +minutes[1]);
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').val(minutes[1]);
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').show();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-										setted = true;
-									} else if (val0 == "TRUNC(SYSDATE,'IW')" && val1 == "TRUNC(SYSDATE,'IW')+7-1/86400") {
-										//week
-										if (operator != 'period')
-											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("week").trigger("change");
-										setted = true;
-									} else if (val0 == "TRUNC(ADD_MONTHS(SYSDATE, -1),'MM')" && val1 == "TRUNC(SYSDATE,'MM')-1/86400") {
-										//month
-										if (operator != 'period')
-											rule.$el.find('.rule-operator-container select').val('period').trigger('change');
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_2]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_3]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').show();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_5]').hide();
-										rule.$el.find('.rule-value-container [name=' + name + '_value_0_4]').val("month").trigger("change");
-										setted = true;
-									}
 
 							}
 						}
