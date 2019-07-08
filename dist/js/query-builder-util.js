@@ -564,12 +564,6 @@
 									parentGroup.rules.forEach(function (r) {
 										if (r.data && r.data['enabled'] == true) {
 											groupOn = true;
-										groupOn = true; 
-											groupOn = true;
-										groupOn = true; 
-											groupOn = true;
-										groupOn = true; 
-											groupOn = true;
 										}
 									});
 								}
