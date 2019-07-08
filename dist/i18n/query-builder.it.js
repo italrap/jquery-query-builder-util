@@ -22,6 +22,11 @@
       week: 'previous week',
       month: 'previous month',
     },
+    labels :{
+      ignore_case: 'ignore case',
+      ignore_case_on: 'Yes',
+      ignore_case_off: 'No',
+    },
   }
 
   QueryBuilder.regional_custom['it'] = {
@@ -100,6 +105,11 @@
       'boolean_not_valid': 'Not a boolean',
       'operator_not_multiple': 'Operator \'{1}\' cannot accept multiple values'
       */
+    },
+    labels :{
+      ignore_case: 'Ignora maiusc.',
+      ignore_case_on: 'Si',
+      ignore_case_off: 'No',
     },
     // 'invert': 'Invert',
     // 'NOT': 'NOT'
