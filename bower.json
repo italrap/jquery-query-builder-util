@@ -29,7 +29,7 @@
     "jQuery-QueryBuilder-sql-ext": ">=2.5.2 <2.5.5"
   },
   "resolutions": {
-    "jQuery-QueryBuilder-sql-ext": "2.5.2.7"
+    "jQuery-QueryBuilder-sql-ext": "2.5.2.10"
   },
   "keywords": [
     "jquery",
