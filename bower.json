@@ -1,6 +1,6 @@
 {
   "name": "jquery-query-builder-util",
-  "version": "0.0.14",
+  "version": "0.0.24",
   "authors": [
     {
       "name": "Davide Graziosi",
@@ -14,7 +14,8 @@
   ],
   "description": "jQuery QueryBuilder utility package",
   "main": [
-    "dist/js/query-builder-util.js"
+    "dist/js/query-builder-util.js",
+    "dist/css/query-builder-util.default.css"
   ],
   "repository": {
     "type": "git",
