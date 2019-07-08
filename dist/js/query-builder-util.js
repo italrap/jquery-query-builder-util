@@ -290,7 +290,10 @@
 			function autowidth(el) {
 				return (el.value.length == 0 ? "16px;" : (el.value.length + 1) * 8) + "px";
 			}
-
+			function unescapeLabel(l){
+				if(l)
+					return $('<div>').html(l).text();
+			}
 
 			//$($(element).find('.rules-group-container').find('button').get(2)).hide();
 			/*$(element).prepend('<script >function autowidth(el) {return ((el.value.length + 1)*8)+"px";} ' +
