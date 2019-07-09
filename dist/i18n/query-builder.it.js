@@ -22,6 +22,12 @@
       week: 'previous week',
       month: 'previous month',
     },
+    labels :{
+      ignore_case: 'ignore case',
+      ignore_case_on: 'Yes',
+      ignore_case_off: 'No',
+      separator: ' [separator=\',\']',
+    },
   }
 
   QueryBuilder.regional_custom['it'] = {
@@ -42,6 +48,9 @@
       'OR': 'OR'
     },
     'operators': {
+      'not_equal': 'diverso',
+      "in": "in lista",
+      "not_in": "non in lista",
       'equal_ic': 'uguale' + ignore_case,
       'not_equal_ic': 'non uguale' + ignore_case,
       'in_ic': 'in' + ignore_case,
@@ -100,6 +109,12 @@
       'boolean_not_valid': 'Not a boolean',
       'operator_not_multiple': 'Operator \'{1}\' cannot accept multiple values'
       */
+    },
+    labels :{
+      ignore_case: 'Ignora maiusc.',
+      ignore_case_on: 'Si',
+      ignore_case_off: 'No',
+      separator: ' [separatore=\',\']',
     },
     // 'invert': 'Invert',
     // 'NOT': 'NOT'

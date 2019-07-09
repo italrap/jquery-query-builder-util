@@ -136,6 +136,26 @@
 			"PRIORITY" : { "0":"BASSA", "1":"MEDIA", "2":"ALTA", "3":"BACKLOG"}
 			};*/
 
+		var customTemplates = {
+			operatorSelect :'\
+{{? it.operators.length === 1 }} \
+<span>\
+{{= it.translate("operators", it.operators[0].type) }} \
+</span> \
+{{?}} \
+{{ var optgroup = null; }}\
+<select class="form-control {{? it.operators.length === 1 }}hide{{?}}" name="{{= it.rule.id }}_operator"> \
+{{~ it.operators: operator }} \
+{{? optgroup !== operator.optgroup }} \
+{{? optgroup !== null }}</optgroup>{{?}} \
+{{? (optgroup = operator.optgroup) !== null }} \
+<optgroup label="{{= it.translate(it.settings.optgroups[optgroup]) }}"> \
+{{?}} \
+{{?}} \
+<option value="{{= operator.type }}" {{? operator.icon}}data-icon="{{= operator.icon}}"{{?}}>{{= it.translate("operators", operator.type) }}{{? it.rule.filter.list!==true && operator.multiple===true }}{{= it.translate("labels", "separator") }}{{?}}</option> \
+{{~}} \
+{{? optgroup !== null }}</optgroup>{{?}} \
+</select>'};
 
 		var service = {
 			getQueryBuilderFilters: getQueryBuilderFilters,
@@ -278,18 +298,27 @@
 				, allow_empty: true
 				, saveNativeRules: true
 				, lang: lang
+				, templates: customTemplates
 				/*, iconUp: 'glyphicon glyphicon-minus', iconDown: 'glyphicon glyphicon-plus', namedGroups: false*/
 			}, this.defaultOptions, options);
 			if (localOptions.sortable) {
 				plugins.sortable = localOptions.sortable;
 			}
 
+			var builder;
+			$(element).on('afterInit.queryBuilder', function (event) {
+				builder = event.builder;
+			});
+
 			$(element).queryBuilder(localOptions);
 
 			function autowidth(el) {
 				return (el.value.length == 0 ? "16px;" : (el.value.length + 1) * 8) + "px";
 			}
-
+			function unescapeLabel(l){
+				if(l)
+					return $('<div>').html(l).text();
+			}
 
 			//$($(element).find('.rules-group-container').find('button').get(2)).hide();
 			/*$(element).prepend('<script >function autowidth(el) {return ((el.value.length + 1)*8)+"px";} ' +
@@ -334,6 +363,12 @@
 				}
 			});
 
+			// $(element).on('getRuleOperatorSelect.queryBuilder.filter', function ( event, rule, operators) {
+			// 	var h = event.value;
+			// 	return h;
+			// 	//GIX
+			// });
+
 			$(element).on('afterUpdateRuleValue.queryBuilder', function (event, rule) {
 				rule.$el.find('#' + rule.id + '_cbx').trigger('change');
 				rule.$el.find('#' + rule.id + '_data').trigger('change');
@@ -359,7 +394,98 @@
 				var b = rule.$el.find("[name$=_filter]");
 				b.focus();
 			});
+			
+			//retrocompatibilità operatori *_ic
+			$(element).on('setRules.queryBuilder.filter', function (event, options) {
+				var re = /(\w+)_ic/;
+				function change_ic_Rules(rules) {
+					if (rules.length > 0) {
+						for (var index = rules.length - 1; index >= 0; index--) {
+							var rule = rules[index];
+							if (rule.operator) {
+								var operator = rule.operator.replace(re, function(match, s1){
+									return s1;
+								});
+								if(operator!==rule.operator){
+									rule.data.ignore_case=true;
+									rule.operator=operator;
+								} 
+							} else if (rule.rules) {
+								change_ic_Rules(rule.rules);
+							}
+						}
+					}
+				}
+				
+				change_ic_Rules(event.value.rules);
+			
+				return event.value;
+			});
 
+			// $(element).on('getRuleValue.queryBuilder.filter', function (event, rule) {
+			// 	if(rule.data && rule.data.ignore_case===true){
+			// 		console.log('getRuleValue.queryBuilder');
+			// 		var oldVal= event.value;
+			// 		// event.value={value:oldVal, ignore_case: true, };
+			// 	}
+
+			// 	return event.value;
+			// });
+
+			$(element).on('afterUpdateRuleFilter.queryBuilder', function (event, rule, previousFilter) {
+				var previousOperator;
+				$(element).queryBuilder('trigger', 'afterUpdateRuleOperator', rule, previousOperator);
+			});
+
+			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event, rule, previousOperator) {
+				var ruleContainer=rule.$el.find('.rule-operator-container');
+				var icContainer = ruleContainer.find('.ignore_case_container');
+				if(rule.operator.enable_ic===true){
+					if(rule.data.ignore_case===undefined)
+						rule.data.ignore_case = false;
+				} else {
+					delete rule.data.ignore_case;
+				}
+				if(rule.filter.type==='string' && !rule.filter.values && rule.operator.enable_ic===true){
+					if(icContainer.length ===0 ){
+						var icContainer=$('<span>',{
+							class: 'ignore_case_container',
+						});
+
+						var label = element.queryBuilder('translate', 'labels', 'ignore_case');
+						icContainer.text(label);
+
+						var input = $('<input>', {
+							class: '',
+							'data-onstyle': "success",
+							'data-toggle': "toggle",
+							type: "checkbox",
+							id: rule.id + '_igncase_cbx',
+							name: rule.id + '_data_igncase_cbx',
+							checked: rule.data.ignore_case===true,
+						});
+						icContainer.append(input);
+						ruleContainer.append(icContainer);
+						// ruleContainer.append(input);
+						input.bootstrapToggle({ size: "mini", style: 'ignore_case_cb', 
+						   on:element.queryBuilder('translate', 'labels', 'ignore_case_on'),
+						   off:element.queryBuilder('translate', 'labels', 'ignore_case_off'),
+						});
+						input.change({ rule: rule }, function (parameters) {
+							var prule = parameters.data.rule;
+							var value = this.checked;
+							if (!prule.data) prule.data = {};
+							prule.data['ignore_case'] = value;
+						});
+					}
+
+				} else {
+					icContainer.remove();
+				}
+				console.log(rule);
+			});
+			
+			
 			$(element).on('afterCreateRuleInput.queryBuilder', function (event, rule) {
 				
 				if (localOptions.labels.visible === true) {
@@ -369,6 +495,7 @@
 					}
 					else {
 						var labelVal = (rule.filter.label ? rule.filter.label : '');
+						labelVal=unescapeLabel(labelVal);
 						console.log(labelVal);
 						$(label[0]).val(labelVal);
 						if (!rule.data) rule.data = {};
@@ -467,6 +594,7 @@
 				var label = '';
 				if (group.data) {
 					label = (group.data && group.data['label'] != undefined ? group.data['label'] : '');
+					label=unescapeLabel(label);
 				}
 				var labellen = ((label ? label.length : "etichetta".length) + 1) * 8;
 
@@ -606,6 +734,7 @@
 					//enabled = ( rule.filter.data['enabled'] != undefined ? rule.filter.data['enabled'] : (rule.data ? rule.data['enabled'] : true));
 					label = rule.filter.data['label'] != undefined ? rule.filter.data['label'] : (rule.data && rule.data['label'] != "" && rule.data['label'] != undefined ? rule.data['label'] : (rule.filter.label ? rule.filter.label : ''));
 				}
+				label=unescapeLabel(label);
 				var labellen = ((label ? label.length : "etichetta".length) + 1) * 8;
 				var container = $(rule.$el).find(".rule-filter-container");
 				var labelObj = $('<label>', {
@@ -680,9 +809,6 @@
 					console.log("r.data: "+r.data);
 				});*/
 
-
-				// $(element).find('#' + rule.id + '_cbx').trigger('change');
-				// $(element).find('#' + rule.id + '_data').trigger('change');
 			}
 		}
 
@@ -786,41 +912,31 @@
 
 		function getQueryBuilderOperators() {
 			return [
-				{ type: 'equal', nb_inputs: 1, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'equal_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_equal', nb_inputs: 1, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'not_equal_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'in', nb_inputs: 1, multiple: true, apply_to: ['string', 'number', 'datetime'] },
-				{ type: 'in_ic', nb_inputs: 1, multiple: true, apply_to: ['string'] },
-				{ type: 'not_in', nb_inputs: 1, multiple: true, apply_to: ['string', 'number', 'datetime'] },
-				{ type: 'not_in_ic', nb_inputs: 1, multiple: true, apply_to: ['string'] },
-				{ type: 'less', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'less_or_equal', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'greater', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'greater_or_equal', nb_inputs: 1, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'between', nb_inputs: 2, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'not_between', nb_inputs: 2, multiple: false, apply_to: ['number', 'datetime'] },
-				{ type: 'begins_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'begins_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_begins_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_begins_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'contains', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'contains_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_contains', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_contains_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'ends_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'ends_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_ends_with', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'not_ends_with_ic', nb_inputs: 1, multiple: false, apply_to: ['string'] },
-				{ type: 'is_empty', nb_inputs: 0, multiple: false, apply_to: ['string'] },
-				{ type: 'is_not_empty', nb_inputs: 0, multiple: false, apply_to: ['string'] },
-				{ type: 'is_null', nb_inputs: 0, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'is_not_null', nb_inputs: 0, multiple: false, apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'last_n_minutes', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
-				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
-				{ type: 'before_last_n_days', nb_inputs: 1, multiple: false, apply_to: ['datetime'] },
-				{ type: 'period', nb_inputs: 1, multiple: true, apply_to: ['datetime'] },
-				{ type: 'is', nb_inputs: 1, multiple: false, apply_to: ['string', 'number'] }
+				{ type: 'equal',                 nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'not_equal',             nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'in',                    nb_inputs: 1, multiple: true,  enable_ic: true,  apply_to: ['string', 'number', 'datetime'] },
+				{ type: 'not_in',                nb_inputs: 1, multiple: true,  enable_ic: true,  apply_to: ['string', 'number', 'datetime'] },
+				{ type: 'less',                  nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'less_or_equal',         nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'greater',               nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'greater_or_equal',      nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'between',               nb_inputs: 2, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'not_between',           nb_inputs: 2, multiple: false,                   apply_to: ['number', 'datetime'] },
+				{ type: 'begins_with',           nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'not_begins_with',       nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'contains',              nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'not_contains',          nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'ends_with',             nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'not_ends_with',         nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
+				{ type: 'is_empty',              nb_inputs: 0, multiple: false,                   apply_to: ['string'] },
+				{ type: 'is_not_empty',          nb_inputs: 0, multiple: false,                   apply_to: ['string'] },
+				{ type: 'is_null',               nb_inputs: 0, multiple: false,                   apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'is_not_null',           nb_inputs: 0, multiple: false,                   apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'last_n_minutes',        nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
+				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
+				{ type: 'before_last_n_days',    nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
+				{ type: 'period',                nb_inputs: 1, multiple: true,                    apply_to: ['datetime'] },
+				{ type: 'is',                    nb_inputs: 1, multiple: false,                   apply_to: [] }
 			];
 		}
 
@@ -926,6 +1042,7 @@
 				//if (key == 'SOURCE') mapping =  [ "BB", "TX", "CX", "MOB", "RDG"];
 				//if (key == 'SEVERITY') mapping =  { "CLEAR" :  0, "INFO" : 1,"WARNING" : 2,"MINOR" : 3,"MAJOR" : 4 ,"CRITICAL" : 5 };
 				if (mapping || id in decodes || filterDef.REVERSE_LIST) {
+					filter['list']=true;
 					//alert ("Decode "+key+" Type "+type);
 					var valueGetter = function (rule) {
 						var el = rule.$el.find('.rule-value-container select[name$=_0]');
@@ -938,7 +1055,8 @@
 					filter['input'] = "select";
 					filter['valueGetter'] = valueGetter;
 					if (filterDef.REVERSE_LIST) {
-						filter['operators'] = ['is'];
+						// filter.type
+						filter['operators'] = ['is'];// TODO: 'equal'
 						filter['values'] = filterDef.REVERSE_LIST;
 					} else {
 						filter['operators'] = ['equal', 'not_equal', 'in', 'not_in', 'is_null', 'is_not_null'];

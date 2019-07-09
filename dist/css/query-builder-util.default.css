@@ -1,0 +1,6 @@
+.query-builder .rule-container .rule-operator-container .ignore_case_cb,
+.query-builder .rule-container .rule-operator-container .ignore_case_container
+ {
+    margin: 0 0 0 5px;
+  }
+  
