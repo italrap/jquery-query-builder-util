@@ -305,6 +305,11 @@
 				plugins.sortable = localOptions.sortable;
 			}
 
+			var builder;
+			$(element).on('afterInit.queryBuilder', function (event) {
+				builder = event.builder;
+			});
+
 			$(element).queryBuilder(localOptions);
 
 			function autowidth(el) {

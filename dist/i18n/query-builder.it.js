@@ -48,6 +48,9 @@
       'OR': 'OR'
     },
     'operators': {
+      'not_equal': 'diverso',
+      "in": "in lista",
+      "not_in": "non in lista",
       'equal_ic': 'uguale' + ignore_case,
       'not_equal_ic': 'non uguale' + ignore_case,
       'in_ic': 'in' + ignore_case,
