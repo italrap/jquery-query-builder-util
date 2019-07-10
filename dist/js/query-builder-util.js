@@ -436,7 +436,8 @@
 
 			$(element).on('afterUpdateRuleFilter.queryBuilder', function (event, rule, previousFilter) {
 				var previousOperator;
-				$(element).queryBuilder('trigger', 'afterUpdateRuleOperator', rule, previousOperator);
+				if(rule.operator)
+					$(element).queryBuilder('trigger', 'afterUpdateRuleOperator', rule, previousOperator);
 			});
 
 			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event, rule, previousOperator) {
