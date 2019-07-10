@@ -167,6 +167,7 @@
 				toggle: { visible: true,
 					hide : { operator: true, values: true },
 				 },
+				enable_ic: true,
 			},
 			globalConfig: function (options) {
 				this.defaultOptions = angular.merge(this.defaultOptions, options);
@@ -305,6 +306,11 @@
 				plugins.sortable = localOptions.sortable;
 			}
 
+			var builder;
+			$(element).on('afterInit.queryBuilder', function (event) {
+				builder = event.builder;
+			});
+
 			$(element).queryBuilder(localOptions);
 
 			function autowidth(el) {
@@ -402,6 +408,7 @@
 									return s1;
 								});
 								if(operator!==rule.operator){
+									if(!rule.data) rule.data={};
 									rule.data.ignore_case=true;
 									rule.operator=operator;
 								} 
@@ -435,13 +442,15 @@
 			$(element).on('afterUpdateRuleOperator.queryBuilder', function (event, rule, previousOperator) {
 				var ruleContainer=rule.$el.find('.rule-operator-container');
 				var icContainer = ruleContainer.find('.ignore_case_container');
-				if(rule.operator.enable_ic===true){
+				var enable_ic=rule.operator.enable_ic===true && builder.settings.enable_ic===true;
+				if (!rule.data) rule.data={};
+				if(enable_ic===true){
 					if(rule.data.ignore_case===undefined)
 						rule.data.ignore_case = false;
 				} else {
 					delete rule.data.ignore_case;
 				}
-				if(rule.filter.type==='string' && !rule.filter.values && rule.operator.enable_ic===true){
+				if(rule.filter.type==='string' && !rule.filter.values && enable_ic===true){
 					if(icContainer.length ===0 ){
 						var icContainer=$('<span>',{
 							class: 'ignore_case_container',
