@@ -152,7 +152,7 @@
 <optgroup label="{{= it.translate(it.settings.optgroups[optgroup]) }}"> \
 {{?}} \
 {{?}} \
-<option value="{{= operator.type }}" {{? operator.icon}}data-icon="{{= operator.icon}}"{{?}}>{{= it.translate("operators", operator.type) }}{{? it.rule.filter.list!==true && operator.multiple===true }}{{= it.translate("labels", "separator") }}{{?}}</option> \
+<option value="{{= operator.type }}" {{? operator.icon}}data-icon="{{= operator.icon}}"{{?}}>{{= it.translate("operators", operator.type) }}{{? it.rule.filter.list!==true && operator.show_separator===true }}{{= it.translate("labels", "separator") }}{{?}}</option> \
 {{~}} \
 {{? optgroup !== null }}</optgroup>{{?}} \
 </select>'};
@@ -689,7 +689,7 @@
 							operator.removeAttr("disabled");
 							inputvalues.removeAttr("disabled");
 							selectvalues.removeAttr("disabled");
-							if(localOptions.toggle.hide.values)
+							if(localOptions.toggle.hide.values && prule.operator && prule.operator.nb_inputs > 0)
 								valueContainer.show();
 							if(localOptions.toggle.hide.operator)
 								operatorContainer.show();
@@ -917,32 +917,32 @@
 
 		function getQueryBuilderOperators() {
 			return [
-				{ type: 'equal',                 nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'not_equal',             nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'in',                    nb_inputs: 1, multiple: true,  enable_ic: true,  apply_to: ['string', 'number', 'datetime'] },
-				{ type: 'not_in',                nb_inputs: 1, multiple: true,  enable_ic: true,  apply_to: ['string', 'number', 'datetime'] },
-				{ type: 'less',                  nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
-				{ type: 'less_or_equal',         nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
-				{ type: 'greater',               nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
-				{ type: 'greater_or_equal',      nb_inputs: 1, multiple: false,                   apply_to: ['number', 'datetime'] },
-				{ type: 'between',               nb_inputs: 2, multiple: false,                   apply_to: ['number', 'datetime'] },
-				{ type: 'not_between',           nb_inputs: 2, multiple: false,                   apply_to: ['number', 'datetime'] },
-				{ type: 'begins_with',           nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
-				{ type: 'not_begins_with',       nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
-				{ type: 'contains',              nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
-				{ type: 'not_contains',          nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
-				{ type: 'ends_with',             nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
-				{ type: 'not_ends_with',         nb_inputs: 1, multiple: false, enable_ic: true,  apply_to: ['string'] },
-				{ type: 'is_empty',              nb_inputs: 0, multiple: false,                   apply_to: ['string'] },
-				{ type: 'is_not_empty',          nb_inputs: 0, multiple: false,                   apply_to: ['string'] },
-				{ type: 'is_null',               nb_inputs: 0, multiple: false,                   apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'is_not_null',           nb_inputs: 0, multiple: false,                   apply_to: ['string', 'number', 'datetime', 'boolean'] },
-				{ type: 'last_n_minutes',        nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
-				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
-				{ type: 'before_last_n_days',    nb_inputs: 1, multiple: false,                   apply_to: ['datetime'] },
-				{ type: 'period',                nb_inputs: 1, multiple: true,                    apply_to: ['datetime'] },
-				{ type: 'is',                    nb_inputs: 1, multiple: false,                   apply_to: [] }
-			];
+				{ type: 'equal',                 nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'not_equal',             nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'in',                    nb_inputs: 1, multiple: true,  enable_ic: true,  show_separator: true, apply_to: ['string', 'number', 'datetime'] },
+				{ type: 'not_in',                nb_inputs: 1, multiple: true,  enable_ic: true,  show_separator: true, apply_to: ['string', 'number', 'datetime'] },
+				{ type: 'less',                  nb_inputs: 1, multiple: false,                                         apply_to: ['number', 'datetime'] },
+				{ type: 'less_or_equal',         nb_inputs: 1, multiple: false,                                         apply_to: ['number', 'datetime'] },
+				{ type: 'greater',               nb_inputs: 1, multiple: false,                                         apply_to: ['number', 'datetime'] },
+				{ type: 'greater_or_equal',      nb_inputs: 1, multiple: false,                                         apply_to: ['number', 'datetime'] },
+				{ type: 'between',               nb_inputs: 2, multiple: false,                                         apply_to: ['number', 'datetime'] },
+				{ type: 'not_between',           nb_inputs: 2, multiple: false,                                         apply_to: ['number', 'datetime'] },
+				{ type: 'begins_with',           nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string'] },
+				{ type: 'not_begins_with',       nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string'] },
+				{ type: 'contains',              nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string'] },
+				{ type: 'not_contains',          nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string'] },
+				{ type: 'ends_with',             nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string'] },
+				{ type: 'not_ends_with',         nb_inputs: 1, multiple: false, enable_ic: true,                        apply_to: ['string'] },
+				{ type: 'is_empty',              nb_inputs: 0, multiple: false,                                         apply_to: ['string'] },
+				{ type: 'is_not_empty',          nb_inputs: 0, multiple: false,                                         apply_to: ['string'] },
+				{ type: 'is_null',               nb_inputs: 0, multiple: false,                                         apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'is_not_null',           nb_inputs: 0, multiple: false,                                         apply_to: ['string', 'number', 'datetime', 'boolean'] },
+				{ type: 'last_n_minutes',        nb_inputs: 1, multiple: false,                                         apply_to: ['datetime'] },
+				{ type: 'before_last_n_minutes', nb_inputs: 1, multiple: false,                                         apply_to: ['datetime'] },
+				{ type: 'before_last_n_days',    nb_inputs: 1, multiple: false,                                         apply_to: ['datetime'] },
+				{ type: 'period',                nb_inputs: 1, multiple: true,                                          apply_to: ['datetime'] },
+				{ type: 'is',                    nb_inputs: 1, multiple: false,                                         apply_to: [] }
+			];                      
 		}
 
 		function getQueryBuilderFilters(items, lang_code) {
