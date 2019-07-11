@@ -689,7 +689,7 @@
 							operator.removeAttr("disabled");
 							inputvalues.removeAttr("disabled");
 							selectvalues.removeAttr("disabled");
-							if(localOptions.toggle.hide.values)
+							if(localOptions.toggle.hide.values && prule.operator && prule.operator.nb_inputs > 0)
 								valueContainer.show();
 							if(localOptions.toggle.hide.operator)
 								operatorContainer.show();
