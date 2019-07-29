@@ -461,7 +461,7 @@
 						icContainer.text(label);
 
 						var input = $('<input>', {
-							class: '',
+							class: 'ignorecase-switch',
 							'data-onstyle': "success",
 							'data-toggle': "toggle",
 							type: "checkbox",
@@ -559,7 +559,7 @@
 						if(value != oldValue){
 							pgroup.data['enabled'] = value;
 							if (!extra) {
-								pgroup.$el.find(" input:checkbox[id!='" + pgroup.id + "_cbx']")
+								pgroup.$el.find(" input.toggleswitch:checkbox[id!='" + pgroup.id + "_cbx']")
 									.prop('checked', value)
 									.trigger("change", { group: pgroup });
 								// $("#" + pgroup.id + " input:checkbox[id!='" + pgroup.id + "_cbx']").prop('checked', value);
@@ -580,7 +580,7 @@
 								if (!parentGroup.data) parentGroup.data = {};
 								var oldGroupValue = parentGroup.data['enabled'];
 								if(oldGroupValue!==groupOn){
-									parentGroup.data['enabled'] = groupOn;
+									// parentGroup.data['enabled'] = groupOn;
 									parentGroup.$el.find("#" + parentGroup.id + '_cbx')
 										.prop('checked', groupOn)
 										.trigger("change", { group: pgroup, propagateToParent:true });
@@ -717,7 +717,7 @@
 								if (!pgroup.data) pgroup.data = {};
 								var oldGroupValue = pgroup.data['enabled'];
 								if(oldGroupValue!==groupOn){
-									pgroup.data['enabled'] = groupOn;
+									// pgroup.data['enabled'] = groupOn;
 									pgroup.$el.find("#" + pgroup.id + '_cbx')
 										.prop('checked', groupOn)
 										.trigger("change", { rule: rule , propagateToParent:true });
