@@ -487,7 +487,7 @@
 				} else {
 					icContainer.remove();
 				}
-				console.log(rule);
+				// console.log(rule);
 			});
 			
 			
@@ -501,7 +501,7 @@
 					else {
 						var labelVal = (rule.filter.label ? rule.filter.label : '');
 						labelVal=unescapeLabel(labelVal);
-						console.log(labelVal);
+						// console.log(labelVal);
 						$(label[0]).val(labelVal);
 						if (!rule.data) rule.data = {};
 						rule.data['label'] = labelVal;
