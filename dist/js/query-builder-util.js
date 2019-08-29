@@ -396,30 +396,46 @@
 				b.focus();
 			});
 			
-			//retrocompatibilità operatori *_ic
+			//retrocompatibilità operatori *_ic e select
 			$(element).on('setRules.queryBuilder.filter', function (event, options) {
 				var re = /(\w+)_ic/;
-				function change_ic_Rules(rules) {
+				function change_ic_Rule(rule) {
+					var operator = rule.operator.replace(re, function(match, s1){
+									return s1;
+								});
+					if(operator!==rule.operator){
+						if(!rule.data) rule.data={};
+						rule.data.ignore_case=true;
+						rule.operator=operator;
+					}
+				}
+				function change_select_Rule(rule) {
+					if(rule.value && rule.input==='select'
+						&& (rule.type==='string' || rule.type==='integer')  // probabilmente la verifica su type è da rimuovere
+						&& (rule.operator==='in' || rule.operator==='not_in') 
+					){
+						if(!angular.isArray(rule.value)){
+							var r = rule.value.toString().split(',');
+							rule.value=r;
+						}
+					}
+				}
+
+				function update_and_fix_Rules(rules) {
 					if (rules.length > 0) {
 						for (var index = rules.length - 1; index >= 0; index--) {
 							var rule = rules[index];
 							if (rule.operator) {
-								var operator = rule.operator.replace(re, function(match, s1){
-									return s1;
-								});
-								if(operator!==rule.operator){
-									if(!rule.data) rule.data={};
-									rule.data.ignore_case=true;
-									rule.operator=operator;
-								} 
+								change_ic_Rule(rule);
+								change_select_Rule(rule);
 							} else if (rule.rules) {
-								change_ic_Rules(rule.rules);
+								update_and_fix_Rules(rule.rules);
 							}
 						}
 					}
 				}
 				
-				change_ic_Rules(event.value.rules);
+				update_and_fix_Rules(event.value.rules);
 			
 				return event.value;
 			});
