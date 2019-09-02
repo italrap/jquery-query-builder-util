@@ -79,6 +79,10 @@
       'is_not_null': 'is not null'
       */
     },
+    operators_no_empty: {
+      "is_null": "è vuoto (o nullo)",
+      "is_not_null": "non è vuoto (o nullo)"
+    },
     periods: {
       day: 'ultime 24 ore',
       days: 'ultimi n giorni completi',
