@@ -426,9 +426,9 @@
 			function addGroupToggle(event, group) {
 				if (localOptions.toggle.visible !== true)
 					return;
-				var enabled = false;
+				var enabled = true;
 				if (group.data) {
-					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : false);
+					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : true);
 				}
 
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
