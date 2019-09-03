@@ -52,6 +52,7 @@
 					hide : { operator: true, values: true },
 				 },
 				enable_ic: true,
+				remove_operators_empty: false, // rimuove gli operatori empty e not_empty
 			},
 			globalConfig: function (options) {
 				this.defaultOptions = angular.merge(this.defaultOptions, options);
@@ -190,6 +191,16 @@
 				plugins.sortable = localOptions.sortable;
 			}
 
+			if(localOptions.remove_operators_empty===true){
+				localOptions.operators = localOptions.operators.filter(function(op){
+					return op.type.indexOf('empty') === -1;
+				});
+
+				var langOverrides = QueryBuilder.regional_custom && QueryBuilder.regional_custom[lang_code] &&  QueryBuilder.regional_custom[lang_code].operators_no_empty;
+				if (langOverrides){
+					angular.merge(localOptions.lang.operators, langOverrides);
+				}
+			}
 			var builder;
 			$(element).on('afterInit.queryBuilder', function (event) {
 				builder = event.builder;
@@ -305,6 +316,19 @@
 					}
 				}
 
+				function change_operator_empty_Rule(rule) {
+					if(options.remove_operators_empty===true){
+						switch(rule.operator){
+							case 'is_not_empty':
+								rule.operator = 'is_not_null';
+								break;
+							case 'is_empty':
+								rule.operator = 'is_null';
+								break;
+						}
+					}
+				}
+
 				function update_and_fix_Rules(rules) {
 					if (rules.length > 0) {
 						for (var index = rules.length - 1; index >= 0; index--) {
@@ -312,6 +336,7 @@
 							if (rule.operator) {
 								change_ic_Rule(rule);
 								change_select_Rule(rule);
+								change_operator_empty_Rule(rule);
 							} else if (rule.rules) {
 								update_and_fix_Rules(rule.rules);
 							}
@@ -426,9 +451,9 @@
 			function addGroupToggle(event, group) {
 				if (localOptions.toggle.visible !== true)
 					return;
-				var enabled = false;
+				var enabled = true;
 				if (group.data) {
-					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : false);
+					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : true);
 				}
 
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
