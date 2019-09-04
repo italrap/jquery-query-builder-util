@@ -317,7 +317,7 @@
 				}
 
 				function change_operator_empty_Rule(rule) {
-					if(options.remove_operators_empty===true){
+					if(event.builder.settings.remove_operators_empty===true){
 						switch(rule.operator){
 							case 'is_not_empty':
 								rule.operator = 'is_not_null';
