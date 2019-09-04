@@ -163,7 +163,7 @@
 			var QueryBuilder = $.fn.queryBuilder;
 			var lang;
 			if (QueryBuilder.regional_custom)
-				lang = QueryBuilder.regional_custom[lang_code];
+				lang = angular.copy(QueryBuilder.regional_custom[lang_code]);
 
 			if (lang === undefined) {
 				lang = {};
