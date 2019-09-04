@@ -376,6 +376,13 @@
 				} else {
 					delete rule.data.ignore_case;
 				}
+
+				var force_ic = rule.filter.ignore_case === true;
+				if(force_ic){
+					enable_ic=false;
+					rule.data.ignore_case = true;
+				}
+
 				if(rule.filter.type==='string' && !rule.filter.values && enable_ic===true){
 					if(icContainer.length ===0 ){
 						var icContainer=$('<span>',{
