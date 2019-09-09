@@ -18,7 +18,17 @@
 
 	function queryBuilderUtility($translate) {
 
-		var decodes = {	};
+		var decodes = {	
+			'source': {
+				'CX': 'CX',
+				'TX': 'TX',
+				'BB': 'BB',
+				'MOB': 'MOB',
+				'RDG': 'RDG',
+				'NFV': 'NFV',
+				'NMS': 'NMS'
+			}
+		};
 
 		var customTemplates = {
 			operatorSelect :'\
