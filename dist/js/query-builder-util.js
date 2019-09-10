@@ -780,7 +780,9 @@
 			return {
 				equal: { op: '= ?' },
 				equal_ic: { op: '= ?', ic: 1 },
-				not_equal: { op: '!= ?' },
+				not_equal: { op: '!= ?',  sqlFullFn: function (field, value, ruleValue) {
+						return '(' + field + ' IS NULL OR ' + field + '!= ' + value + ')';
+					}},
 				not_equal_ic: { op: '!= ?', ic: 1 },
 				in: { op: 'IN(?)', sep: ', ' },
 				in_ic: { op: 'IN(?)', sep: ', ', ic: 1 },
