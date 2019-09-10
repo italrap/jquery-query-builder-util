@@ -18,17 +18,7 @@
 
 	function queryBuilderUtility($translate) {
 
-		var decodes = {	
-			'source': {
-				'CX': 'CX',
-				'TX': 'TX',
-				'BB': 'BB',
-				'MOB': 'MOB',
-				'RDG': 'RDG',
-				'NFV': 'NFV',
-				'NMS': 'NMS'
-			}
-		};
+		var decodes = {	};
 
 		var customTemplates = {
 			operatorSelect :'\
@@ -134,7 +124,7 @@
 								tempRules.splice(index, 1);
 							}
 						} else if (rule.condition) {
-							if (!rule.data || !rule.data['enabled']) {
+							if (!rule.data || rule.data['enabled'] === false) {
 								tempRules.splice(index, 1);
 							} else {
 								rule.rules = cleanUnusedRules(rule.rules);
@@ -471,7 +461,10 @@
 				var enabled = true;
 				if (group.data) {
 					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : true);
+				} else {
+					group.data = {};
 				}
+				group.data.enabled = enabled;
 
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
 				var toggle = container.parent().find('#'+group.id + '_cbx.toggleswitch');
