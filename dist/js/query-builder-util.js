@@ -124,7 +124,7 @@
 								tempRules.splice(index, 1);
 							}
 						} else if (rule.condition) {
-							if (!rule.data || rule.data['enabled'] === false) {
+							if (rule.data && rule.data['enabled'] === false) {
 								tempRules.splice(index, 1);
 							} else {
 								rule.rules = cleanUnusedRules(rule.rules);
