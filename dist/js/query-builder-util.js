@@ -124,7 +124,7 @@
 								tempRules.splice(index, 1);
 							}
 						} else if (rule.condition) {
-							if (!rule.data || !rule.data['enabled']) {
+							if (rule.data && rule.data['enabled'] === false) {
 								tempRules.splice(index, 1);
 							} else {
 								rule.rules = cleanUnusedRules(rule.rules);
@@ -461,7 +461,10 @@
 				var enabled = true;
 				if (group.data) {
 					enabled = (group.data && group.data['enabled'] != undefined ? group.data['enabled'] : true);
+				} else {
+					group.data = {};
 				}
+				group.data.enabled = enabled;
 
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
 				var toggle = container.parent().find('#'+group.id + '_cbx.toggleswitch');
@@ -777,7 +780,9 @@
 			return {
 				equal: { op: '= ?' },
 				equal_ic: { op: '= ?', ic: 1 },
-				not_equal: { op: '!= ?' },
+				not_equal: { op: '!= ?',  sqlFullFn: function (field, value, ruleValue) {
+						return '(' + field + ' IS NULL OR ' + field + '!= ' + value + ')';
+					}},
 				not_equal_ic: { op: '!= ?', ic: 1 },
 				in: { op: 'IN(?)', sep: ', ' },
 				in_ic: { op: 'IN(?)', sep: ', ', ic: 1 },
