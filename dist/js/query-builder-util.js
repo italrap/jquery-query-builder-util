@@ -330,18 +330,30 @@
 				}
 
 				function update_and_fix_Rules(rules) {
+					var enabled = false;
 					if (rules.length > 0) {
 						for (var index = rules.length - 1; index >= 0; index--) {
 							var rule = rules[index];
+							if(!rule.data) rule.data={};
 							if (rule.operator) {
 								change_ic_Rule(rule);
 								change_select_Rule(rule);
 								change_operator_empty_Rule(rule);
+								rule.data.enabled = rule.data.enabled !== false; //default true
+								if(rule.data.enabled === true){
+									enabled = true;
+								}
 							} else if (rule.rules) {
-								update_and_fix_Rules(rule.rules);
+								var groupEnabled = update_and_fix_Rules(rule.rules);
+								if ( groupEnabled === true){
+									enabled = true;
+								}
+								if (rule.data.enabled === undefined)
+									rule.data.enabled = groupEnabled;
 							}
 						}
 					}
+					return enabled;
 				}
 				
 				update_and_fix_Rules(event.value.rules);
