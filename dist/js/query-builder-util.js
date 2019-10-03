@@ -599,6 +599,7 @@
 				if (!toggle || !toggle.length) {
 					var enabled = false;
 					if (rule.data || rule.filter.data) {
+						if(!rule.filter.data) rule.filter.data = {};
 						enabled = (rule.filter.data['enabled'] != undefined ? rule.filter.data['enabled'] : (rule.data && rule.data['enabled'] != undefined ? rule.data['enabled'] : true));
 					}
 
@@ -682,6 +683,7 @@
 			function addRuleLabel(event, rule) {
 				var label = '';
 				if (rule.data || rule.filter.data) {
+					if(!rule.filter.data) rule.filter.data = {};
 					//label = rule.filter.data['label'] != undefined ? rule.filter.data['label'] :  (rule.data ? rule.data['label'] : (rule.filter.label ?  rule.filter.label : ''));
 					//enabled = ( rule.filter.data['enabled'] != undefined ? rule.filter.data['enabled'] : (rule.data ? rule.data['enabled'] : true));
 					label = rule.filter.data['label'] != undefined ? rule.filter.data['label'] : (rule.data && rule.data['label'] != "" && rule.data['label'] != undefined ? rule.data['label'] : (rule.filter.label ? rule.filter.label : ''));
