@@ -403,16 +403,22 @@
 
 						var label = element.queryBuilder('translate', 'labels', 'ignore_case');
 						icContainer.text(label);
-
-						var input = $('<input>', {
-							class: 'ignorecase-switch',
-							'data-onstyle': "success",
-							'data-toggle': "toggle",
-							type: "checkbox",
-							id: rule.id + '_igncase_cbx',
-							name: rule.id + '_data_igncase_cbx',
-							checked: rule.data.ignore_case===true,
-						});
+						var toggleOptions = {
+								class: 'ignorecase-switch',
+								'data-onstyle': "success",
+								'data-toggle': "toggle",
+								type: "checkbox",
+								id: rule.id + '_igncase_cbx',
+								name: rule.id + '_data_igncase_cbx',
+								checked: rule.data.ignore_case===true,
+						};
+						if (localOptions.toggle.dataOn != undefined) {
+							toggleOptions['data-on'] = localOptions.toggle.dataOn;
+						}
+						if (localOptions.toggle.dataOff != undefined) {
+							toggleOptions['data-off'] = localOptions.toggle.dataOff;
+						}
+						var input = $('<input>', toggleOptions);
 						icContainer.append(input);
 						ruleContainer.append(icContainer);
 						// ruleContainer.append(input);
@@ -481,7 +487,7 @@
 				var container = $(group.$el).find('.rules-group-header .group-conditions'); //.drag-handle')
 				var toggle = container.parent().find('#'+group.id + '_cbx.toggleswitch');
 				if (!toggle || !toggle.length) {
-					var input = $('<input>', {
+					var toggleOptions = {
 						class: 'toggleswitch',
 						'data-onstyle': "success",
 						'data-toggle': "toggle",
@@ -489,7 +495,14 @@
 						id: group.id + '_cbx',
 						name: group.id + '_data_cbx',
 						checked: enabled == true,
-					});
+					};
+					if (localOptions.toggle.dataOn != undefined) {
+						toggleOptions['data-on'] = localOptions.toggle.dataOn;
+					}
+					if (localOptions.toggle.dataOff != undefined) {
+						toggleOptions['data-off'] = localOptions.toggle.dataOff;
+					}
+					var input = $('<input>', toggleOptions);
 					// if (enabled == true) { input.prop('checked', 'checked'); }
 					container.after(input);
 					input.bootstrapToggle({ size: "mini" });
@@ -602,16 +615,22 @@
 						if(!rule.filter.data) rule.filter.data = {};
 						enabled = (rule.filter.data['enabled'] != undefined ? rule.filter.data['enabled'] : (rule.data && rule.data['enabled'] != undefined ? rule.data['enabled'] : true));
 					}
-
-					var input = $('<input>', {
-						class: 'toggleswitch',
-						'data-onstyle': "success",
-						'data-toggle': "toggle",
-						type: "checkbox",
-						id: rule.id + '_cbx',
-						name: rule.id + '_data_cbx',
-						checked: enabled == true,
-					});
+					var toggleOptions = {
+							class: 'toggleswitch',
+							'data-onstyle': "success",
+							'data-toggle': "toggle",
+							type: "checkbox",
+							id: rule.id + '_cbx',
+							name: rule.id + '_data_cbx',
+							checked: enabled == true,
+					};
+					if (localOptions.toggle.dataOn != undefined) {
+						toggleOptions['data-on'] = localOptions.toggle.dataOn;
+					}
+					if (localOptions.toggle.dataOff != undefined) {
+						toggleOptions['data-off'] = localOptions.toggle.dataOff;
+					}
+					var input = $('<input>', toggleOptions);
 										
 					container.prepend(input);
 					
