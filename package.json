@@ -13,10 +13,7 @@
     }
   ],
   "description": "jQuery QueryBuilder utility package",
-  "main": [
-    "dist/js/query-builder-util.js",
-    "dist/css/query-builder-util.default.css"
-  ],
+  "main": "dist/js/query-builder-util.js",
   "repository": {
     "type": "git",
     "url": "https://git.expriviatelcomedia.it/INPAS/jquery-query-builder-util.git"
